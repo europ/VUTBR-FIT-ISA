@@ -2,6 +2,9 @@
 #include <string>
 #include <string.h>
 #include <sys/stat.h>
+#include <sys/socket.h>
+#include <arpa/inet.h>
+#include <unistd.h>
 
 using namespace std;
 
@@ -47,40 +50,34 @@ void usage() {
     exit(0);
 }
 
-// print the pertaining error message and terminate the program
+// print the pertaining error message depending on exitcode and terminate the program with the exitcode
 void error(int exitcode) {
     switch (exitcode) {
         case 1:
             cerr << "Invalid arguments!\n";
-            exit(exitcode);
             break;
         case 2:
             cerr << "Argument value is missing!\n";
-            exit(exitcode);
             break;
         case 3:
             cerr << "Arguments are missing!\n";
-            exit(exitcode);
             break;
         case 4:
             cerr << "Wrong combination of \"-h\"!\n";
-            exit(exitcode);
             break;
         case 5:
             cerr << "Wrong port!\n";
-            exit(exitcode);
             break;
         case 6:
             cerr << "Wrong authentication file!\n";
-            exit(exitcode);
             break;
         case 7:
             cerr << "Wrong maildir direcotry!\n";
-            exit(exitcode);
             break;
         default:
             break;
     }
+    exit(exitcode);
 }
 
 // check if STRING is an option
@@ -228,12 +225,72 @@ void argpar(int* argc, char* argv[], Args* args) {
     }
 }
 
+void server_kernel(Args* args) {
+    int port_number = atoi((args->port).c_str());
+    int welcome_socket;
+    struct sockaddr_in6 sa;
+    struct sockaddr_in6 sa_client;
+
+    socklen_t sa_client_len=sizeof(sa_client);
+    if ((welcome_socket = socket(PF_INET6, SOCK_STREAM, 0)) < 0) {
+        perror("ERROR: socket");
+        exit(EXIT_FAILURE);
+    }
+
+    memset(&sa,0,sizeof(sa));
+    sa.sin6_family = AF_INET6;
+    sa.sin6_addr = in6addr_any;
+    sa.sin6_port = htons(port_number);
+
+
+    char str[INET6_ADDRSTRLEN];
+    int rc;
+
+    if ((rc = bind(welcome_socket, (struct sockaddr*)&sa, sizeof(sa))) < 0) {
+        perror("ERROR: bind");
+        exit(EXIT_FAILURE);
+    }
+    if ((listen(welcome_socket, 1)) < 0) {
+        perror("ERROR: listen");
+        exit(EXIT_FAILURE);
+    }
+    while(1) {
+        int comm_socket = accept(welcome_socket, (struct sockaddr*)&sa_client, &sa_client_len);
+        if (comm_socket > 0)
+        {
+            if(inet_ntop(AF_INET6, &sa_client.sin6_addr, str, sizeof(str))) {
+                printf("INFO: New connection:\n");
+                printf("INFO: Client address is %s\n", str);
+                printf("INFO: Client port is %d\n", ntohs(sa_client.sin6_port));
+            }
+
+            char buff[1024];
+            int res = 0;
+            for (;;)
+            {
+                res = recv(comm_socket, buff, 1024,0);
+                if (res <= 0)
+                    break;
+
+                send(comm_socket, buff, strlen(buff), 0);
+            }
+        }
+        else
+        {
+            printf(".");
+        }
+        printf("Connection to %s closed\n",str);
+        close(comm_socket);
+    }
+}
+
 int main(int argc, char* argv[]) {
 
     Args args;
     argpar(&argc, argv, &args);
-
     args.print();
-    cout << endl;
+
+    server_kernel(&args);
+
     return 0;
 }
