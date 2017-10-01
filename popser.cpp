@@ -74,6 +74,15 @@ void error(int exitcode) {
         case 7:
             cerr << "Wrong maildir direcotry!\n";
             break;
+        case 8:
+            cerr << "socket() failed!\n";
+            break;
+        case 9:
+            cerr << "bind() failed!\n";
+            break;
+        case 10:
+            cerr << "listen() failed!\n";
+            break;
         default:
             break;
     }
@@ -226,38 +235,35 @@ void argpar(int* argc, char* argv[], Args* args) {
 }
 
 void server_kernel(Args* args) {
+
+    int rc;
     int port_number = atoi((args->port).c_str());
     int welcome_socket;
     struct sockaddr_in6 sa;
     struct sockaddr_in6 sa_client;
+    socklen_t sa_client_len;
 
-    socklen_t sa_client_len=sizeof(sa_client);
-    if ((welcome_socket = socket(PF_INET6, SOCK_STREAM, 0)) < 0) {
-        perror("ERROR: socket");
-        exit(EXIT_FAILURE);
-    }
+    // create an endpoint for communication
+    sa_client_len=sizeof(sa_client);
+    if ((welcome_socket = socket(PF_INET6, SOCK_STREAM, 0)) < 0) error(8);
 
     memset(&sa,0,sizeof(sa));
     sa.sin6_family = AF_INET6;
     sa.sin6_addr = in6addr_any;
     sa.sin6_port = htons(port_number);
 
+    // bind a name to a socket
+    if ((rc = bind(welcome_socket, (struct sockaddr*)&sa, sizeof(sa))) < 0) error(9);
 
+    // listen for connections on a socket
+    if ((listen(welcome_socket, 1)) < 0) error(10);
+
+
+    // ===================================
     char str[INET6_ADDRSTRLEN];
-    int rc;
-
-    if ((rc = bind(welcome_socket, (struct sockaddr*)&sa, sizeof(sa))) < 0) {
-        perror("ERROR: bind");
-        exit(EXIT_FAILURE);
-    }
-    if ((listen(welcome_socket, 1)) < 0) {
-        perror("ERROR: listen");
-        exit(EXIT_FAILURE);
-    }
     while(1) {
         int comm_socket = accept(welcome_socket, (struct sockaddr*)&sa_client, &sa_client_len);
-        if (comm_socket > 0)
-        {
+        if (comm_socket > 0) {
             if(inet_ntop(AF_INET6, &sa_client.sin6_addr, str, sizeof(str))) {
                 printf("INFO: New connection:\n");
                 printf("INFO: Client address is %s\n", str);
@@ -266,8 +272,8 @@ void server_kernel(Args* args) {
 
             char buff[1024];
             int res = 0;
-            for (;;)
-            {
+            while(1) {
+                memset(&buff,0,sizeof(buff));
                 res = recv(comm_socket, buff, 1024,0);
                 if (res <= 0)
                     break;
@@ -275,13 +281,14 @@ void server_kernel(Args* args) {
                 send(comm_socket, buff, strlen(buff), 0);
             }
         }
-        else
-        {
+        else {
             printf(".");
         }
         printf("Connection to %s closed\n",str);
         close(comm_socket);
     }
+    // ===================================
+
 }
 
 int main(int argc, char* argv[]) {
