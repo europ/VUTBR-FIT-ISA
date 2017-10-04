@@ -1,5 +1,13 @@
+/**
+ * @author     Adrián Tóth
+ * @date       4.10.2017
+ * @brief      POP3 server
+ */
+
 #include <iostream>
 #include <string>
+#include <thread>
+
 #include <string.h>
 #include <sys/stat.h>
 #include <sys/socket.h>
@@ -82,6 +90,9 @@ void error(int exitcode) {
             break;
         case 10:
             cerr << "listen() failed!\n";
+            break;
+        case 11:
+            cerr << "accept() failed!\n";
             break;
         default:
             break;
@@ -193,6 +204,8 @@ void argpar(int* argc, char* argv[], Args* args) {
         }
     }
 
+    // TODO FIXIT arguments from forum
+
     // check help
     if (args->h) {
         if (args->a == true || args->c == true || args->p == true || args->d == true || args->r == true) { // -h is with others (not first)
@@ -234,6 +247,23 @@ void argpar(int* argc, char* argv[], Args* args) {
     }
 }
 
+void thread_main(int socket) {
+    std::thread::id tid = std::this_thread::get_id();
+    cout << "CONNECTED (THREAD = "<< tid << ")" << endl;
+    char buff[1024];
+    int res = 0;
+    while(1) {
+        memset(&buff,0,sizeof(buff));
+        res = recv(socket, buff, 1024,0);
+        if (res <= 0)
+            break;
+        cout << buff;
+
+        send(socket, buff, strlen(buff), 0);
+    }
+    close(socket);
+}
+
 void server_kernel(Args* args) {
 
     int rc;
@@ -256,39 +286,20 @@ void server_kernel(Args* args) {
     if ((rc = bind(welcome_socket, (struct sockaddr*)&sa, sizeof(sa))) < 0) error(9);
 
     // listen for connections on a socket
-    if ((listen(welcome_socket, 1)) < 0) error(10);
+    if ((listen(welcome_socket, 2)) < 0) error(10); // TODO FIXIT listen(socket, PORT) ... check PORT number
 
-
-    // ===================================
-    char str[INET6_ADDRSTRLEN];
+    int communication_socket;
     while(1) {
-        int comm_socket = accept(welcome_socket, (struct sockaddr*)&sa_client, &sa_client_len);
-        if (comm_socket > 0) {
-            if(inet_ntop(AF_INET6, &sa_client.sin6_addr, str, sizeof(str))) {
-                printf("INFO: New connection:\n");
-                printf("INFO: Client address is %s\n", str);
-                printf("INFO: Client port is %d\n", ntohs(sa_client.sin6_port));
-            }
-
-            char buff[1024];
-            int res = 0;
-            while(1) {
-                memset(&buff,0,sizeof(buff));
-                res = recv(comm_socket, buff, 1024,0);
-                if (res <= 0)
-                    break;
-
-                send(comm_socket, buff, strlen(buff), 0);
-            }
+        communication_socket = accept(welcome_socket, (struct sockaddr*)&sa_client, &sa_client_len);
+        if (communication_socket == -1) { // TODO FIXIT - what to do if accept fails ???
+            error(11);
         }
         else {
-            printf(".");
+            // conection established, create a new independent thread
+            std::thread thrd(thread_main, communication_socket);
+            thrd.detach();
         }
-        printf("Connection to %s closed\n",str);
-        close(comm_socket);
     }
-    // ===================================
-
 }
 
 int main(int argc, char* argv[]) {
@@ -296,6 +307,7 @@ int main(int argc, char* argv[]) {
     Args args;
     argpar(&argc, argv, &args);
     args.print();
+    cout << endl;
 
     server_kernel(&args);
 

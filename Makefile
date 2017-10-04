@@ -1,7 +1,7 @@
 .PHONY: make
 
 CC=g++
-CF=-Wall -Wextra -pedantic -std=c++11
+CF=-Wall -Wextra -pedantic -std=c++11 -pthread
 PROJ=popser
 TARFILES=$(PROJ).cpp README Makefile manual.pdf
 TARNAME=xtotha01
