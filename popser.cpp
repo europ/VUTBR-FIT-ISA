@@ -146,7 +146,52 @@ bool dir_exists(const std::string& path) {
     }
 }
 
+// reset
+void reset() { // TODO
+    cout << "TODO - reset" << endl;
+    cout << "-r ONLY" << endl;
+}
+
 void argpar(int* argc, char* argv[], Args* args) {
+
+    // [-h] [-a PATH] [-c] [-p PORT] [-d PATH] [-r]
+    int c;
+    while ((c = getopt(argc, argv, "ha:cp:d:r")) != -1)
+        switch (c) {
+            case 'h':
+                args->h = true;
+                break;
+            case 'a':
+                args->a = true;
+                args->path_a = optarg;
+                break;
+            case 'c':
+                args->c = true;
+                break;
+            case 'p':
+                args->p = true;
+                args->port = optarg;
+                break;
+            case 'd':
+                args->d = true;
+                args->path_d = optarg;
+                break;
+            case 'r':
+                args->r = true;
+                break;
+            case '?':
+                if (optopt == 'a' || optopt == 'p' || optopt == 'd')
+                    fprintf(stderr, "Option -%c requires an argument.\n", optopt);
+                else if (isprint(optopt))
+                    fprintf(stderr, "Unknown option -%c.\n", optopt);
+                else
+                    fprintf(stderr, "Unknown option character `\\x%x\n", optopt);
+                exit(1);
+        }
+
+/*
+
+
 
     // NO args
     if (*argc <= 1) {
@@ -206,45 +251,60 @@ void argpar(int* argc, char* argv[], Args* args) {
 
     // TODO FIXIT arguments from forum
 
-    // check help
+    // check for "help"
     if (args->h) {
-        if (args->a == true || args->c == true || args->p == true || args->d == true || args->r == true) { // -h is with others (not first)
-            error(4);
-        }
-        else if (*argc > 2) { // -h is first with others
-            error(4);
-        }
-        else { // only -h
-            usage();
-        }
+        // not handling this (phorum)
+        //if (args->a == true || args->c == true || args->p == true || args->d == true || args->r == true) { // -h is with others (not first)
+        //    error(4);
+        //}
+        //else if (*argc > 2) { // -h is first with others
+        //    error(4);
+        //}
+        //else { // only -h
+        //    usage();
+        //}
+
+        usage();
     }
 
-    // check port
-    if (args->p) {
-        if (!is_number(args->port.c_str())) {
-            error(5);
-        }
-        /*
-        else {
-            // TODO FIXIT
-            // check port size (range)
-        }
-        */
+    // check for "only reset"
+    else if (args->r && *argc == 2) {
+        reset();
+        exit(0);
     }
 
-    // check authentication file existence
-    if (args->a) {
-        if (!file_exists(args->path_a)) {
-            error(6);
+    else {
+        if (!args->p || !args->a || !args->d) {
+            error(3);
         }
-    }
 
-    // check maildir directory existence
-    if (args->d) {
-        if (!dir_exists(args->path_d)) {
-            error(7);
+        // check port
+        if (args->p) {
+            if (!is_number(args->port.c_str())) {
+                error(5);
+            }
+            //else {
+            //    // TODO FIXIT
+            //    // check port size (range)
+            //}
+
+        }
+
+        // check authentication file existence
+        if (args->a) {
+            if (!file_exists(args->path_a)) {
+                error(6);
+            }
+        }
+
+        // check maildir directory existence
+        if (args->d) {
+            if (!dir_exists(args->path_d)) {
+                error(7);
+            }
         }
     }
+    */
 }
 
 void thread_main(int socket) {
