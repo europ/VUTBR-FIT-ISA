@@ -21,7 +21,6 @@ class Args {
 
     public:
 
-        bool h = false;
         bool a = false;
         bool c = false;
         bool p = false;
@@ -33,7 +32,6 @@ class Args {
 
         // DEBUG INFO
         void print() {
-            cout << "h = " << (h ? "T" : "False") << endl;
             cout << "a = " << (a ? "T" : "False") << endl;
             cout << "c = " << (c ? "T" : "False") << endl;
             cout << "p = " << (p ? "T" : "False") << endl;
@@ -153,129 +151,53 @@ void reset() { // TODO
 }
 
 void argpar(int* argc, char* argv[], Args* args) {
-
     // [-h] [-a PATH] [-c] [-p PORT] [-d PATH] [-r]
-    int c;
-    while ((c = getopt(argc, argv, "ha:cp:d:r")) != -1)
-        switch (c) {
-            case 'h':
-                args->h = true;
-                break;
-            case 'a':
-                args->a = true;
-                args->path_a = optarg;
-                break;
-            case 'c':
-                args->c = true;
-                break;
-            case 'p':
-                args->p = true;
-                args->port = optarg;
-                break;
-            case 'd':
-                args->d = true;
-                args->path_d = optarg;
-                break;
-            case 'r':
-                args->r = true;
-                break;
-            case '?':
-                if (optopt == 'a' || optopt == 'p' || optopt == 'd')
-                    fprintf(stderr, "Option -%c requires an argument.\n", optopt);
-                else if (isprint(optopt))
-                    fprintf(stderr, "Unknown option -%c.\n", optopt);
-                else
-                    fprintf(stderr, "Unknown option character `\\x%x\n", optopt);
-                exit(1);
-        }
 
-/*
-
-
-
-    // NO args
-    if (*argc <= 1) {
-        error(3);
-    }
-
+    // check for "-h" (help option)
     for(int i=1; i<*argc; i++) {
-        // HELP arg
         if (strcmp(argv[i], "-h") == 0) {
-            args->h = true;
+            usage();
         }
-        // AUTH FILE arg + load its value
-        else if (strcmp(argv[i], "-a") == 0) {
-            args->a = true;
-            if (i+1 < *argc && !isarg(argv[i+1])) {
-                args->path_a = argv[i+1];
-                i++;
-            }
-            else {
-                error(2);
-            }
-        }
-        // CLEAR PASS arg
-        else if (strcmp(argv[i], "-c") == 0) {
-            args->c = true;
-        }
-        // PORT arg + load its value
-        else if (strcmp(argv[i], "-p") == 0) {
-            if (i+1 < *argc && !isarg(argv[i+1])) {
-                args->p = true;
-                args->port = argv[i+1];
-                i++;
-            }
-            else {
-                error(2);
-            }
-        }
-        // MAILDIR arg + load its value
-        else if (strcmp(argv[i], "-d") == 0) {
-            if (i+1 < *argc && !isarg(argv[i+1])) {
-                args->d = true;
-                args->path_d = argv[i+1];
-                i++;
-            }
-            else {
-                error(2);
-            }
-        }
-        // RESET arg
-        else if (strcmp(argv[i], "-r") == 0) {
-            args->r = true;
-        }
-        else {
-            error(1);
-        }
-    }
+     }
 
-    // TODO FIXIT arguments from forum
-
-    // check for "help"
-    if (args->h) {
-        // not handling this (phorum)
-        //if (args->a == true || args->c == true || args->p == true || args->d == true || args->r == true) { // -h is with others (not first)
-        //    error(4);
-        //}
-        //else if (*argc > 2) { // -h is first with others
-        //    error(4);
-        //}
-        //else { // only -h
-        //    usage();
-        //}
-
-        usage();
-    }
-
-    // check for "only reset"
-    else if (args->r && *argc == 2) {
+    // check for "-r" (reset only)
+    if (*argc == 2 && (strcmp(argv[1], "-r") == 0)) {
         reset();
-        exit(0);
+        exit(1);
     }
 
+    // check for other options
     else {
-        if (!args->p || !args->a || !args->d) {
-            error(3);
+        int c;
+        while ((c = getopt(*argc, argv, "a:cp:d:r")) != -1) {
+            switch (c) {
+                case 'a':
+                    args->a = true;
+                    args->path_a = optarg;
+                    break;
+                case 'c':
+                    args->c = true;
+                    break;
+                case 'p':
+                    args->p = true;
+                    args->port = optarg;
+                    break;
+                case 'd':
+                    args->d = true;
+                    args->path_d = optarg;
+                    break;
+                case 'r':
+                    args->r = true;
+                    break;
+                case '?':
+                    fprintf(stderr, "Wrong options!\n");
+                    exit(1);
+            }
+        }
+
+        if( !args->p || !args->a || !args->d) {
+            fprintf(stderr, "Wrong options!\n");
+            exit(1);
         }
 
         // check port
@@ -283,28 +205,29 @@ void argpar(int* argc, char* argv[], Args* args) {
             if (!is_number(args->port.c_str())) {
                 error(5);
             }
-            //else {
-            //    // TODO FIXIT
-            //    // check port size (range)
-            //}
-
+            // else {
+            //     // TODO FIXIT
+            //     // check port size (range)
+            // }
         }
 
         // check authentication file existence
         if (args->a) {
             if (!file_exists(args->path_a)) {
-                error(6);
+                fprintf(stderr, "Wrong authentication file!\n");
+                exit(2);
             }
         }
 
         // check maildir directory existence
         if (args->d) {
             if (!dir_exists(args->path_d)) {
-                error(7);
+                fprintf(stderr, "Wrong maildir direcotry!\n");
+                exit(2);
             }
         }
     }
-    */
+
 }
 
 void thread_main(int socket) {
