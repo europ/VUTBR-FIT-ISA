@@ -1,6 +1,6 @@
 /**
  * @author     Adrián Tóth
- * @date       4.10.2017
+ * @date       9.10.2017
  * @brief      POP3 server
  */
 
@@ -15,9 +15,12 @@
 #include <sys/socket.h>
 #include <arpa/inet.h>
 #include <unistd.h>
+#include <fcntl.h> // fcntlk() - nonblocking socket
+#include <sys/select.h> // select()
 
 using namespace std;
 
+// enum for states
 enum State {
     AUTHORIZATION,
     TRANSACTION,
@@ -25,6 +28,7 @@ enum State {
     STATE_ERROR
 };
 
+// enum for commands
 enum Command {
     QUIT,
     STAT,
@@ -37,47 +41,40 @@ enum Command {
     USER,
     PASS,
     APOP,
-    //TOP,
     COMMAND_ERROR
 };
 
 // class for options
 class Args {
-
     public:
-
         bool a = false;
         bool c = false;
         bool p = false;
         bool d = false;
         bool r = false;
-        string path_a = "";
-        string port   = "";
-        string path_d = "";
-
-        // DEBUG INFO
-        void print() {
-            cout << "a = " << (a ? "T" : "False") << endl;
-            cout << "c = " << (c ? "T" : "False") << endl;
-            cout << "p = " << (p ? "T" : "False") << endl;
-            cout << "d = " << (d ? "T" : "False") << endl;
-            cout << "r = " << (r ? "T" : "False") << endl;
-            cout << "path_a = " << path_a << endl;
-            cout << "port   = " << port   << endl;
-            cout << "path_d = " << path_d << endl;
-        }
-
+        std::string path_a = "";
+        std::string port   = "";
+        std::string path_d = "";
+        std::string username = "";
+        std::string password = "";
 };
 
-// print the help message and terminate the program
+// print the help message to stdout and terminate the program
 void usage() {
     string message =
-        "This\n"
-        "is\n"
-        "help\n"
-        "message\n"
+        "\n"
+        "USAGE:\n"
+        "\tHELP:"
+        "\t[-h]\n"
+        "\n"
+        "\tRESET:\n"
+        "\t[-r]\n"
+        "\n"
+        "\tLAUNCH\n"
+        "\t[-a authentication_file] [-p port_numer] [-d mail_directory] (OPTIONAL: [-c] [-r])\n"
+        "\n"
     ;
-    cout << message;
+    std::cout << message;
     exit(0);
 }
 
@@ -215,8 +212,6 @@ Command get_command(std::string& str) {
 
     std::transform(cmd.begin(), cmd.end(), cmd.begin(), ::tolower);
 
-    cout << "CMD tolower =" << cmd << "=" << endl;
-
     if (cmd.compare("quit") == 0) return QUIT;
     else if (cmd.compare("stat") == 0) return STAT;
     else if (cmd.compare("list") == 0) return LIST;
@@ -232,9 +227,6 @@ Command get_command(std::string& str) {
 }
 
 void thread_main(int socket) {
-
-    std::thread::id tid = std::this_thread::get_id();
-    cout << "CONNECTED (THREAD = "<< tid << ")" << endl;
 
     State STATE = AUTHORIZATION;
     Command COMMAND;
@@ -256,10 +248,13 @@ void thread_main(int socket) {
         if (res == 0) {
             break;
         }
+        if (errno == EAGAIN) {
+            continue;
+        }
 
         // ADD BUFFER TO C++ STIRING
         data = buff;
-        data = data.substr(0, data.size()-2);
+        data = data.substr(0, data.size()-2); // remmove CRLF (last 2 characters)
 
         COMMAND = get_command(data);
 
@@ -334,11 +329,6 @@ void thread_main(int socket) {
             default:
                 break;
         }
-
-
-
-
-
     }
     close(socket);
 }
@@ -378,16 +368,32 @@ void server_kernel(Args* args) {
 
     int communication_socket;
     while(1) {
+
+        fd_set fds;
+        if (select(welcome_socket + 1, &fds, NULL, NULL, NULL) <= 0) {
+            fprintf(stderr, "select() failed!\n");
+            continue;
+        }
+
         communication_socket = accept(welcome_socket, (struct sockaddr*)&sa_client, &sa_client_len);
+
+        int flags = fcntl(communication_socket, F_GETFL, 0);
+        int rc = fcntl(communication_socket, F_SETFL, flags | O_NONBLOCK);
+        if (rc < 0) {
+            fprintf(stderr, "fcntl() failed!\n");
+            continue;
+        }
+
         if (communication_socket == -1) { // TODO FIXIT - what to do if accept fails ???
             fprintf(stderr, "accept() failed!\n");
-            exit(1);
+            continue;
         }
         else {
-            // conection established, create a new independent thread
+            // conection established
             std::thread thrd(thread_main, communication_socket);
             thrd.detach();
         }
+
     }
 }
 
