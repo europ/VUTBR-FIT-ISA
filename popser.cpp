@@ -9,7 +9,8 @@
 #include <vector>
 #include <thread>
 #include <algorithm>
-
+#include <sstream>
+#include <fstream>
 #include <string.h>
 #include <sys/stat.h>
 #include <sys/socket.h>
@@ -114,9 +115,47 @@ bool dir_exists(const std::string& path) {
 }
 
 // reset
-void reset() { // TODO
+void reset() {
+    // TODO
+    // FIXIT
     cout << "TODO: reset()" << endl;
     exit(0);
+}
+
+// username and password loading from authentication file
+void load_auth_file(Args* args) { // TODO FIXIT
+
+    FILE* fd;
+    fd = fopen(args->path_a.c_str(),"r");
+
+    if (fd == NULL ) {
+        fprintf(stderr, "Failed to open authentication file!\n");
+        exit(1);
+    }
+
+    char buff[4096];
+    int retval;
+
+    memset(&buff,0,sizeof(buff));
+    retval = fscanf(fd,"username = %s\n", buff  );
+
+    if (retval == 0) {
+        fprintf(stderr, "Failed to load username from authentication file!\n");
+        exit(1);
+    }
+
+    args->username = buff;
+
+    memset(&buff,0,sizeof(buff));
+    retval = fscanf(fd,"password = %s",   buff  );
+
+    if (retval == 0) {
+        fprintf(stderr, "Failed to load password from authentication file!\n");
+        exit(1);
+    }
+
+    args->password = buff;
+    fclose(fd);
 }
 
 void argpar(int* argc, char* argv[], Args* args) {
@@ -188,6 +227,9 @@ void argpar(int* argc, char* argv[], Args* args) {
                 fprintf(stderr, "Wrong authentication file!\n");
                 exit(1);
             }
+            else {
+                load_auth_file(args);
+            }
         }
 
         // check maildir directory existence
@@ -226,14 +268,37 @@ Command get_command(std::string& str) {
     else return COMMAND_ERROR;
 }
 
+std::vector<std::string> get_cmd_args(std::string& str) {
+
+    std::vector<std::string> vector;
+
+    if (str.empty()) return vector;
+
+    std::string strbuff;
+    std::istringstream iss(str.c_str());
+    bool flag = false;
+    while ( getline( iss, strbuff, ' ' ) ) {
+        if (flag == false) { // first string is CMD, we dont need it
+            flag = true;
+        }
+        else { // these are ARGS, we need to add them into vector
+            vector.push_back(strbuff);
+        }
+    }
+
+    return vector;
+}
+
 void thread_main(int socket) {
 
     State STATE = AUTHORIZATION;
     Command COMMAND;
+    std::vector<std::string> CMD_ARGS;
 
     char buff[1024];
     int res = 0;
     string data;
+
     while(1) {
 
         // RESET BUFFER
@@ -241,15 +306,15 @@ void thread_main(int socket) {
 
         // RECEIVE
         res = recv(socket, buff, 1024,0); // FIXIT TODO buffer size
-        if (res < 0) {
-            fprintf(stderr, "recv() failed!\n");
-            return;
-        }
-        if (res == 0) {
+        if (res == 0) { // client disconnected
             break;
         }
-        if (errno == EAGAIN) {
+        else if (errno == EAGAIN && res <= 0) { // recv would block EWOULDBLOCK
             continue;
+        }
+        else if (res < 0) {
+            fprintf(stderr, "recv() failed!\n");
+            return;
         }
 
         // ADD BUFFER TO C++ STIRING
@@ -257,6 +322,13 @@ void thread_main(int socket) {
         data = data.substr(0, data.size()-2); // remmove CRLF (last 2 characters)
 
         COMMAND = get_command(data);
+        CMD_ARGS = get_cmd_args(data);
+
+        std::cout << "CMD=" << COMMAND << endl;
+        for (auto i = CMD_ARGS.begin(); i != CMD_ARGS.end(); ++i)
+            std::cout << "CMD_ARG=" << *i << ' ';
+        cout << "==========================" << endl;
+        continue;
 
         switch(STATE){
             // ==========================================================
@@ -370,7 +442,9 @@ void server_kernel(Args* args) {
     while(1) {
 
         fd_set fds;
-        if (select(welcome_socket + 1, &fds, NULL, NULL, NULL) <= 0) {
+        FD_ZERO(&fds);
+        FD_SET(welcome_socket, &fds);
+        if (select(welcome_socket + 1, &fds, NULL, NULL, NULL) == -1) {
             fprintf(stderr, "select() failed!\n");
             continue;
         }
