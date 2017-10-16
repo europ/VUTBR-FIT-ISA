@@ -242,16 +242,37 @@ void argpar(int* argc, char* argv[], Args* args) {
     }
 }
 
+void print_status(State S, Command C) {
+
+    std::string state, command;
+
+    if (S == AUTHORIZATION) state = "AUTHORIZATION";
+    else if (S == TRANSACTION) state = "TRANSACTION";
+    else if (S == UPDATE) state = "UPDATE";
+    else state = "\033[1m\033[31mSTATE_ERROR\033[0m";
+
+    if (C == QUIT) command = "QUIT";
+    else if (C == STAT) command = "STAT";
+    else if (C == LIST) command = "LIST";
+    else if (C == RETR) command = "RETR";
+    else if (C == DELE) command = "DELE";
+    else if (C == NOOP) command = "NOOP";
+    else if (C == RSET) command = "RSET";
+    else if (C == UIDL) command = "UIDL";
+    else if (C == USER) command = "USER";
+    else if (C == PASS) command = "PASS";
+    else if (C == APOP) command = "APOP";
+    else command = "\033[1m\033[31mCOMMAND_ERROR\033[0m";
+
+    std::cout << "STATE = " << state << endl << "COMMAND = " << command << endl;
+    return;
+}
+
 Command get_command(std::string& str) {
 
     if (str.empty()) return COMMAND_ERROR;
 
-    std::string cmd = "";
-    for(unsigned i=0; i<str.length(); i++) {
-        if (str[i] == ' ' || str[i] == '\0') break;
-        cmd += str[i];
-    }
-
+    std::string cmd = str;
     std::transform(cmd.begin(), cmd.end(), cmd.begin(), ::tolower);
 
     if (cmd.compare("quit") == 0) return QUIT;
@@ -268,41 +289,46 @@ Command get_command(std::string& str) {
     else return COMMAND_ERROR;
 }
 
-std::vector<std::string> get_cmd_args(std::string& str) {
 
-    std::vector<std::string> vector;
 
-    if (str.empty()) return vector;
-
-    std::string strbuff;
-    std::istringstream iss(str.c_str());
-    bool flag = false;
-    while ( getline( iss, strbuff, ' ' ) ) {
-        if (flag == false) { // first string is CMD, we dont need it
-            flag = true;
-        }
-        else { // these are ARGS, we need to add them into vector
-            vector.push_back(strbuff);
-        }
+void load_cmd_and_args(Command* CMD, std::string& ARGS, std::string& str) {
+    std::string cmd;
+    std::size_t pos = str.find(" ");
+    if (pos == std::string::npos) {
+        cmd = str;
     }
-
-    return vector;
+    else {
+        cmd = str.substr(0, pos);
+        ARGS = str.substr(pos+1, str.length());
+    }
+    *CMD = get_command(cmd);
+    return;
 }
 
-void thread_main(int socket) {
+void thread_send(int socket, std::string& str) {
+    // TODO FIXIT socket - what if socket is corrupted?
+    send(socket, str.c_str(), str.length(), 0);
+    return;
+}
+
+void thread_main(int socket, Args* args) {
 
     State STATE = AUTHORIZATION;
     Command COMMAND;
-    std::vector<std::string> CMD_ARGS;
+    std::string msg;
+    std::string CMD_ARGS;
+    std::string CRLF = "\r\n";
 
     char buff[1024];
     int res = 0;
     string data;
+    bool flag_USER = false;
 
     while(1) {
 
-        // RESET BUFFER
+        // RESET
         memset(&buff,0,sizeof(buff));
+        CMD_ARGS.clear();
 
         // RECEIVE
         res = recv(socket, buff, 1024,0); // FIXIT TODO buffer size
@@ -317,18 +343,17 @@ void thread_main(int socket) {
             return;
         }
 
+        if (CRLF.compare(buff) == 0) continue; // only CRLF received
+
         // ADD BUFFER TO C++ STIRING
         data = buff;
         data = data.substr(0, data.size()-2); // remmove CRLF (last 2 characters)
 
-        COMMAND = get_command(data);
-        CMD_ARGS = get_cmd_args(data);
+        if (data.empty()) continue; // we dont have string including "COMMAND [ARGS]"
 
-        std::cout << "CMD=" << COMMAND << endl;
-        for (auto i = CMD_ARGS.begin(); i != CMD_ARGS.end(); ++i)
-            std::cout << "CMD_ARG=" << *i << ' ';
-        cout << "==========================" << endl;
-        continue;
+        load_cmd_and_args(&COMMAND, CMD_ARGS, data);
+
+        print_status(STATE,COMMAND);
 
         switch(STATE){
             // ==========================================================
@@ -336,23 +361,77 @@ void thread_main(int socket) {
                 switch(COMMAND){
                     // ==================================================
                     case NOOP:
+                        if (!CMD_ARGS.empty()) { // NOOP str
+                            msg = "-ERR Command NOOP in AUTHORIZATION state does not support any arguments!\r\n";
+                            thread_send(socket, msg);
+                        }
+                        else { // NOOP
+                            msg = "+OK\r\n";
+                            thread_send(socket, msg);
+                        }
                         break;
                     // ==================================================
                     case QUIT:
+                        if (!CMD_ARGS.empty()) { // QUIT str
+                            msg = "-ERR Command QUIT in AUTHORIZATION state does not support any arguments!\r\n";
+                            thread_send(socket, msg);
+                        }
+                        else { // QUIT
+                            msg = "+OK Closing connection.\r\n";
+                            thread_send(socket, msg);
+                            close(socket);
+                            return;
+                        }
                         break;
                     // ==================================================
                     case USER:
+                        if (!CMD_ARGS.empty()) { // USER str
+                            if (args->username.compare(CMD_ARGS) == 0 ) { // USER USERNAME
+                                flag_USER = true;
+                                msg = "+OK Userame is valid.\r\n";
+                                thread_send(socket, msg);
+                            }
+                            else { // USER wrongstr
+                                msg = "-ERR Invalid username!\r\n";
+                                thread_send(socket, msg);
+                            }
+                        }
+                        else { // USER
+                            msg = "-ERR Command USER in AUTHORIZATION state has no argument!\r\n";
+                            thread_send(socket, msg);
+                        }
                         break;
                     // ==================================================
                     case PASS:
+                        if (flag_USER) { // USERNAME was
+                            if (!CMD_ARGS.empty()) { // PASS str
+                                if (args->password.compare(CMD_ARGS) == 0 ) { // PASS PASSWORD
+                                    msg = "+OK Password is valid.\r\n";
+                                    thread_send(socket, msg);
+                                    STATE = TRANSACTION;
+                                }
+                                else { // PASS wrongstr
+                                    msg = "-ERR Invalid password!\r\n";
+                                    thread_send(socket, msg);
+                                }
+                            }
+                            else { // PASS
+                                msg = "-ERR Command PASS in AUTHORIZATION state has no argument!\r\n";
+                                thread_send(socket, msg);
+                            }
+                        }
+                        else { // USERNAME was not
+                            msg = "-ERR Missing command USER in AUTHORIZATION before PASS!\r\n";
+                            thread_send(socket, msg);
+                        }
                         break;
                     // ==================================================
                     case APOP:
                         break;
                     // ==================================================
                     default:
-                        fprintf(stderr, "Wrong command in authorization state!\n");
-                        return;
+                        msg = "-ERR Wrong command in AUTHORIZATION state!\r\n";
+                        thread_send(socket, msg);
                         break;
                 }
                 break;
@@ -361,9 +440,26 @@ void thread_main(int socket) {
                 switch(COMMAND){
                     // ==================================================
                     case NOOP:
+                        if (!CMD_ARGS.empty()) { // NOOP str
+                            msg = "-ERR Command NOOP in AUTHORIZATION state does not support any arguments!\r\n";
+                            thread_send(socket, msg);
+                        }
+                        else { // NOOP
+                            msg = "+OK\r\n";
+                            thread_send(socket, msg);
+                        }
                         break;
                     // ==================================================
                     case QUIT:
+                        if (!CMD_ARGS.empty()) { // QUIT str
+                            msg = "-ERR Command QUIT in TRANSACTION state does not support any arguments!\r\n";
+                            thread_send(socket, msg);
+                        }
+                        else { // QUIT
+                            msg = "+OK\r\n";
+                            thread_send(socket, msg);
+                            STATE = UPDATE;
+                        }
                         break;
                     // ==================================================
                     case UIDL:
@@ -385,38 +481,37 @@ void thread_main(int socket) {
                         break;
                     // ==================================================
                     default:
-                        fprintf(stderr, "Wrong command in transaction state!\n");
-                        return;
+                        msg = "-ERR Wrong command in TRANSACTION state!\r\n";
+                        thread_send(socket, msg);
                         break;
                 }
                 break;
             // ==========================================================
             case UPDATE:
-                switch(COMMAND){
-                    default:
-                        break;
-                }
+                close(socket);
                 break;
             // ==========================================================
             default:
                 break;
         }
     }
-    close(socket);
 }
 
 void server_kernel(Args* args) {
 
-    int rc;
+    int retval;
+    int flags;
     int port_number = atoi((args->port).c_str());
     int welcome_socket;
+    int communication_socket;
     struct sockaddr_in6 sa;
     struct sockaddr_in6 sa_client;
     socklen_t sa_client_len;
 
     // create an endpoint for communication
     sa_client_len=sizeof(sa_client);
-    if ((welcome_socket = socket(PF_INET6, SOCK_STREAM, 0)) < 0) {
+    welcome_socket = socket(PF_INET6, SOCK_STREAM, 0);
+    if (welcome_socket < 0) {
         fprintf(stderr, "socket() failed!\n");
         exit(1);
     }
@@ -427,18 +522,19 @@ void server_kernel(Args* args) {
     sa.sin6_port = htons(port_number);
 
     // bind a name to a socket
-    if ((rc = bind(welcome_socket, (struct sockaddr*)&sa, sizeof(sa))) < 0) {
+    retval = bind(welcome_socket, (struct sockaddr*)&sa, sizeof(sa));
+    if (retval < 0) {
         fprintf(stderr, "bind() failed!\n");
         exit(1);
     }
 
     // listen for connections on a socket
-    if ((listen(welcome_socket, 2)) < 0) { // TODO FIXIT listen(socket, PORT) ... check PORT number
+    retval = listen(welcome_socket, 2);
+    if (retval < 0) {
         fprintf(stderr, "listen() failed!\n");
         exit(1);
     }
 
-    int communication_socket;
     while(1) {
 
         fd_set fds;
@@ -450,23 +546,22 @@ void server_kernel(Args* args) {
         }
 
         communication_socket = accept(welcome_socket, (struct sockaddr*)&sa_client, &sa_client_len);
+        if (communication_socket == -1) { // TODO FIXIT - what to do if accept fails ??? WHAT? WHAT IS THIS ?
+            fprintf(stderr, "accept() failed!\n");
+            continue;
+        }
 
-        int flags = fcntl(communication_socket, F_GETFL, 0);
-        int rc = fcntl(communication_socket, F_SETFL, flags | O_NONBLOCK);
-        if (rc < 0) {
+        flags = fcntl(communication_socket, F_GETFL, 0);
+        retval = fcntl(communication_socket, F_SETFL, flags | O_NONBLOCK);
+        if (retval < 0) {
             fprintf(stderr, "fcntl() failed!\n");
             continue;
         }
 
-        if (communication_socket == -1) { // TODO FIXIT - what to do if accept fails ???
-            fprintf(stderr, "accept() failed!\n");
-            continue;
-        }
-        else {
-            // conection established
-            std::thread thrd(thread_main, communication_socket);
-            thrd.detach();
-        }
+        // conection established
+
+        std::thread thrd(thread_main, communication_socket, args);
+        thrd.detach();
 
     }
 }

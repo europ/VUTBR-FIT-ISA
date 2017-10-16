@@ -1,2 +1,2 @@
-username = ThisIsUserName
-password = ThisIsPassword
+username = adrian
+password = bigboss
