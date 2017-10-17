@@ -12,6 +12,10 @@ $(PROJ): $(PROJ).cpp
 tar:
 	tar -cvf $(TARNAME).tar $(TARFILES)
 
+md5:
+	g++ -Wall -Wextra -pedantic -std=c++11 -pthread -lcrypto -lssl md5.cpp -o md5
+
 clean:
 	rm -f $(PROJ)
 	rm -f $(TARNAME).tar
+	rm -f md5
