@@ -79,7 +79,7 @@ void usage() {
     exit(0);
 }
 
-// check PORT
+// check string PORT if it consists from numbers only
 bool is_number(const char* str) {
     if (!*str)
         return false;
@@ -158,6 +158,7 @@ void load_auth_file(Args* args) { // TODO FIXIT
     fclose(fd);
 }
 
+// parsing arguments and initializating class args
 void argpar(int* argc, char* argv[], Args* args) {
     // [-h] [-a PATH] [-c] [-p PORT] [-d PATH] [-r]
 
@@ -242,6 +243,7 @@ void argpar(int* argc, char* argv[], Args* args) {
     }
 }
 
+// TODO FIXIT REMOVE THIS
 void print_status(State S, Command C) {
 
     std::string state, command;
@@ -268,6 +270,7 @@ void print_status(State S, Command C) {
     return;
 }
 
+// Converter STRING to ENUM
 Command get_command(std::string& str) {
 
     if (str.empty()) return COMMAND_ERROR;
@@ -289,8 +292,7 @@ Command get_command(std::string& str) {
     else return COMMAND_ERROR;
 }
 
-
-
+// Parser for string which is in format COMMAND+' '+ARGUMENTS
 void load_cmd_and_args(Command* CMD, std::string& ARGS, std::string& str) {
     std::string cmd;
     std::size_t pos = str.find(" ");
@@ -311,6 +313,17 @@ void thread_send(int socket, std::string& str) {
     return;
 }
 
+std::string get_string_for_md5(std::string& password) {
+
+    std::string time;
+    std::string pid;
+    std::string hostname;
+
+    std::string result;
+    return result;
+}
+
+// Passed function to thread which define behaviour of thread
 void thread_main(int socket, Args* args) {
 
     State STATE = AUTHORIZATION;
@@ -497,6 +510,7 @@ void thread_main(int socket, Args* args) {
     }
 }
 
+// Function is the kernel of this program, set up connection and threads
 void server_kernel(Args* args) {
 
     int retval;
@@ -566,6 +580,7 @@ void server_kernel(Args* args) {
     }
 }
 
+// The Main
 int main(int argc, char* argv[]) {
 
     Args args;
