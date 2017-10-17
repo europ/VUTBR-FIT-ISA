@@ -20,6 +20,7 @@
 #include <sys/socket.h>
 #include <sys/select.h>
 #include <sys/types.h>
+#include <openssl/md5.h>
 
 using namespace std;
 
@@ -66,7 +67,7 @@ class Args {
 
 // print the help message to stdout and terminate the program
 void usage() {
-    string message =
+    std::string message =
         "\n"
         "USAGE:\n"
         "\tHELP:"
@@ -122,7 +123,7 @@ bool dir_exists(const std::string& path) {
 void reset() {
     // TODO
     // FIXIT
-    cout << "TODO: reset()" << endl;
+    std::cout << "TODO: reset()" << std::endl;
     exit(0);
 }
 
@@ -270,7 +271,7 @@ void print_status(State S, Command C) {
     else if (C == APOP) command = "APOP";
     else command = "\033[1m\033[31mCOMMAND_ERROR\033[0m";
 
-    std::cout << "STATE = " << state << endl << "COMMAND = " << command << endl;
+    std::cout << "STATE = " << state << std::endl << "COMMAND = " << command << std::endl;
     return;
 }
 
@@ -314,6 +315,27 @@ void load_cmd_and_args(Command* CMD, std::string& ARGS, std::string& str) {
 void thread_send(int socket, std::string& str) {
     // TODO FIXIT socket - what if socket is corrupted?
     send(socket, str.c_str(), str.length(), 0);
+    return;
+}
+
+void apop_parser(int socket, Args* args, std::string& username, std::string& digest, std::string& str) {
+    std::string msg;
+    std::size_t pos;
+
+    pos = str.find(" ");
+
+    if (pos == std::string::npos) {
+        msg = "-ERR Command APOP in AUTHORIZATION state failed! Wrong arguments of APOP.\r\n";
+        thread_send(socket, msg);
+    }
+    else {
+        /*
+        cmd = str.substr(0, pos);
+        ARGS = str.substr(pos+1, str.length());
+        */
+        msg = "APOP:TODO";
+        thread_send(socket, msg);
+    }
     return;
 }
 
@@ -366,16 +388,25 @@ std::string get_md5_hash(std::string& greeting_banner, std::string& password) {
 // Passed function to thread which define behaviour of thread
 void thread_main(int socket, Args* args) {
 
-    State STATE = AUTHORIZATION;
+    // DECLARATION
+    int res;
+    char buff[1024];
+    bool flag_USER;
+    State STATE;
     Command COMMAND;
     std::string msg;
+    std::string data;
     std::string CMD_ARGS;
-    std::string CRLF = "\r\n";
+    std::string GREETING_BANNER;
 
-    char buff[1024];
-    int res = 0;
-    string data;
-    bool flag_USER = false;
+    // INITIALIZATION
+    STATE = AUTHORIZATION;
+    GREETING_BANNER = get_greeting_banner();
+    flag_USER = false;
+
+    // sending BANNER GREETING
+    msg = "+OK POP3 server ready " + GREETING_BANNER + "\r\n";
+    thread_send(socket, msg);
 
     while(1) {
 
@@ -396,7 +427,7 @@ void thread_main(int socket, Args* args) {
             return;
         }
 
-        if (CRLF.compare(buff) == 0) continue; // only CRLF received
+        if (strcmp("\r\n",buff) == 0) continue; // only CRLF received
 
         // ADD BUFFER TO C++ STIRING
         data = buff;
@@ -480,6 +511,16 @@ void thread_main(int socket, Args* args) {
                         break;
                     // ==================================================
                     case APOP:
+                        if (CMD_ARGS.empty()) { // APOP
+                            msg = "-ERR Command APOP in AUTHORIZATION state has no arguments!\r\n";
+                            thread_send(socket, msg);
+                        }
+                        else { // APOP str
+                            std::string noop_username, noop_digest;
+                            apop_parser(socket, args, noop_username, noop_digest, CMD_ARGS);
+                            msg = "TODO:APOP\r\n";
+                            thread_send(socket, msg);
+                        }
                         break;
                     // ==================================================
                     default:
