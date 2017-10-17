@@ -11,15 +11,19 @@
 #include <algorithm>
 #include <sstream>
 #include <fstream>
+#include <ctime>
+#include <fcntl.h>
 #include <string.h>
+#include <unistd.h>
+#include <arpa/inet.h>
 #include <sys/stat.h>
 #include <sys/socket.h>
-#include <arpa/inet.h>
-#include <unistd.h>
-#include <fcntl.h> // fcntlk() - nonblocking socket
-#include <sys/select.h> // select()
+#include <sys/select.h>
+#include <sys/types.h>
 
 using namespace std;
+
+#define HOSTNAME_LENGTH 64
 
 // enum for states
 enum State {
@@ -313,14 +317,50 @@ void thread_send(int socket, std::string& str) {
     return;
 }
 
-std::string get_string_for_md5(std::string& password) {
+// Function creates string for MD5 hash
+std::string get_greeting_banner() {
 
-    std::string time;
-    std::string pid;
-    std::string hostname;
+    std::string str;
 
-    std::string result;
-    return result;
+    pid_t  h_pid  = getpid();
+    time_t h_time = time(NULL);
+
+    char h_hostname[HOSTNAME_LENGTH];
+    int retval = gethostname(h_hostname, HOSTNAME_LENGTH);
+    if(retval != 0) {
+        fprintf(stderr, "gethostname() failed!\n");
+        return NULL;
+    }
+
+    str.append("<");
+    str.append(std::to_string(h_pid));
+    str.append(".");
+    str.append(std::to_string(h_time));
+    str.append("@");
+    str.append(h_hostname);
+    str.append(">");
+
+    return str;
+}
+
+std::string get_md5_hash(std::string& greeting_banner, std::string& password) {
+
+    std::string hash;
+    std::string input;
+
+    input.append(greeting_banner);
+    input.append(password);
+
+    unsigned char result[32];
+    MD5((const unsigned char*)input.c_str(), input.length(), result);
+
+    char buffer[32];
+    for (int i=0;i<16;i++){
+        sprintf(buffer, "%02x", result[i]);
+        hash.append(buffer);
+    }
+
+    return hash;
 }
 
 // Passed function to thread which define behaviour of thread
