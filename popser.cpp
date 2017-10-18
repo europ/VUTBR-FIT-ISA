@@ -4,6 +4,8 @@
  * @brief      POP3 server
  */
 
+#define md5
+
 #include <iostream>
 #include <string>
 #include <vector>
@@ -20,7 +22,10 @@
 #include <sys/socket.h>
 #include <sys/select.h>
 #include <sys/types.h>
+
+#ifdef md5
 #include <openssl/md5.h>
+#endif
 
 using namespace std;
 
@@ -349,6 +354,8 @@ std::string get_greeting_banner() {
     return str;
 }
 
+#ifdef md5 // =====================================================================================
+
 std::string get_md5_hash(std::string& greeting_banner, std::string& password) {
 
     std::string hash;
@@ -415,6 +422,8 @@ int apop_parser(int socket, Args* args, std::string& str, std::string& greeting_
 
     return 0;
 }
+
+#endif //==========================================================================================
 
 // Passed function to thread which define behaviour of thread
 void thread_main(int socket, Args* args) {
@@ -548,12 +557,21 @@ void thread_main(int socket, Args* args) {
                             thread_send(socket, msg);
                         }
                         else { // APOP str
-                            retval = apop_parser(socket, args, CMD_ARGS, GREETING_BANNER);
-                            if (retval == 1) {
-                                break;
-                            }
-                            msg = "+OK Authorized.\r\n";
-                            thread_send(socket, msg);
+
+                            #ifdef md5
+                              retval = apop_parser(socket, args, CMD_ARGS, GREETING_BANNER);
+                              if (retval == 1) {
+                                  break;
+                              }
+                              msg = "+OK Authorized.\r\n";
+                              thread_send(socket, msg);
+                              STATE = TRANSACTION;
+                            #else
+                              retval = retval; // -Wunused-variable
+                              msg = "+OK Authorized. MD5 is switched OFF\r\n";
+                              thread_send(socket, msg);
+                              STATE = TRANSACTION;
+                            #endif
                         }
                         break;
                     // ==================================================
