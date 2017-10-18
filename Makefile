@@ -12,6 +12,10 @@ make:
 md5:
 	$(CC) $(CF) -lcrypto -lssl $(PROJECT).cpp -o $(PROJECT)
 
+.PHONY: hash
+hash:
+	$(CC) $(CF) -lcrypto -lssl hash.cpp -o hash
+
 .PHONY: tar
 tar:
 	tar -cvf $(LOGIN).tar $(TARFILES)
@@ -24,4 +28,5 @@ test:
 clean:
 	@rm -f $(PROJECT)
 	@rm -f $(LOGIN).tar
+	@rm -f hash
 	@rm -f test
