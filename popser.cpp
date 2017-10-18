@@ -1,11 +1,8 @@
 /**
  * @author     Adrián Tóth
- * @date       9.10.2017
+ * @date       18.10.2017
  * @brief      POP3 server
  */
-
-//#define md5
-using namespace std;
 
 #include <iostream>
 #include <string>
@@ -23,10 +20,9 @@ using namespace std;
 #include <sys/socket.h>
 #include <sys/select.h>
 #include <sys/types.h>
-
-#ifdef md5
 #include <openssl/md5.h>
-#endif
+
+using namespace std;
 
 #define HOSTNAME_LENGTH 64
 #define PORT_MAX 65535
@@ -230,7 +226,7 @@ void argpar(int* argc, char* argv[], Args* args) {
                 const char* str = args->port.c_str();
                 long int number = strtol(str, NULL, 10);
                 if ((number < 0) || (PORT_MAX < number) || (errno == ERANGE)) {
-                    fprintf(stderr, "Wrong port!\n");
+                    fprintf(stderr, "Wrong port! Port is not from range 0-%d.\n", PORT_MAX);
                     exit(1);
                 }
             }
@@ -327,30 +323,6 @@ void thread_send(int socket, std::string& str) {
     return;
 }
 
-void apop_parser(int socket, Args* args, std::string& username, std::string& digest, std::string& str) {
-    std::string msg;
-    std::size_t pos;
-
-    cout << endl;
-    cout << "APOP string =" << str << "=" << endl;
-
-    msg = "-ERR Command APOP in AUTHORIZATION state failed! Wrong arguments of APOP.\r\n";
-    pos = str.find(" ");
-
-    if (pos == std::string::npos) {
-        thread_send(socket, msg);
-    }
-    else {
-        username = str.substr(0, pos);
-        digest = str.substr(pos+1, str.length());
-    }
-    cout << "USERNAME =" << args->username << "=" << endl;
-    cout << "APOP username =" << username << "=" << endl;
-    cout << "APOP digest =" << digest << "=" << endl;
-    cout << endl;
-    return;
-}
-
 // Function creates string for MD5 hash
 std::string get_greeting_banner() {
 
@@ -377,7 +349,6 @@ std::string get_greeting_banner() {
     return str;
 }
 
-#ifdef md5
 std::string get_md5_hash(std::string& greeting_banner, std::string& password) {
 
     std::string hash;
@@ -397,13 +368,60 @@ std::string get_md5_hash(std::string& greeting_banner, std::string& password) {
 
     return hash;
 }
-#endif
+
+int apop_parser(int socket, Args* args, std::string& str, std::string& greeting_banner) {
+
+    std::string username;
+    std::string digest;
+    std::string msg;
+    std::size_t pos;
+
+    pos = str.find(" ");
+
+    if (pos == std::string::npos) {
+        msg = "-ERR Command APOP in AUTHORIZATION state failed! Wrong arguments of APOP.\r\n";
+        thread_send(socket, msg);
+        return 1;
+    }
+    else {
+        username = str.substr(0, pos);
+        digest = str.substr(pos+1, str.length());
+    }
+
+    if (username.empty()) {
+        msg = "-ERR Command APOP in AUTHORIZATION state failed! Wrong arguments of APOP. Username is missing.\r\n";
+        thread_send(socket, msg);
+        return 1;
+    }
+
+    if (digest.empty()) {
+        msg = "-ERR Command APOP in AUTHORIZATION state failed! Wrong arguments of APOP. Digest is missing.\r\n";
+        thread_send(socket, msg);
+        return 1;
+    }
+
+    if (args->username.compare(username) != 0) {
+        msg = "-ERR Command APOP in AUTHORIZATION state failed! Invalid username.\r\n";
+        thread_send(socket, msg);
+        return 1;
+    }
+
+    std::string hash = get_md5_hash(greeting_banner, args->password);
+    if (hash.compare(digest) != 0) {
+        msg = "-ERR Command APOP in AUTHORIZATION state failed! Invalid digest.\r\n";
+        thread_send(socket, msg);
+        return 1;
+    }
+
+    return 0;
+}
 
 // Passed function to thread which define behaviour of thread
 void thread_main(int socket, Args* args) {
 
     // DECLARATION
     int res;
+    int retval;
     char buff[1024];
     bool flag_USER;
     State STATE;
@@ -504,7 +522,7 @@ void thread_main(int socket, Args* args) {
                         if (flag_USER) { // USERNAME was
                             if (!CMD_ARGS.empty()) { // PASS str
                                 if (args->password.compare(CMD_ARGS) == 0 ) { // PASS PASSWORD
-                                    msg = "+OK Password is valid.\r\n";
+                                    msg = "+OK Password is valid. Authorized.\r\n";
                                     thread_send(socket, msg);
                                     STATE = TRANSACTION;
                                 }
@@ -530,9 +548,11 @@ void thread_main(int socket, Args* args) {
                             thread_send(socket, msg);
                         }
                         else { // APOP str
-                            std::string noop_username, noop_digest;
-                            apop_parser(socket, args, noop_username, noop_digest, CMD_ARGS);
-                            msg = "TODO:APOP\r\n";
+                            retval = apop_parser(socket, args, CMD_ARGS, GREETING_BANNER);
+                            if (retval == 1) {
+                                break;
+                            }
+                            msg = "+OK Authorized.\r\n";
                             thread_send(socket, msg);
                         }
                         break;
