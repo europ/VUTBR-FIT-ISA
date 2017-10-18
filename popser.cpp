@@ -4,6 +4,9 @@
  * @brief      POP3 server
  */
 
+//#define md5
+using namespace std;
+
 #include <iostream>
 #include <string>
 #include <vector>
@@ -20,11 +23,11 @@
 #include <sys/socket.h>
 #include <sys/select.h>
 #include <sys/types.h>
+
+#ifdef md5
 #include <openssl/md5.h>
+#endif
 
-using namespace std;
-
-//#define md5
 #define HOSTNAME_LENGTH 64
 #define PORT_MAX 65535
 
@@ -328,20 +331,23 @@ void apop_parser(int socket, Args* args, std::string& username, std::string& dig
     std::string msg;
     std::size_t pos;
 
+    cout << endl;
+    cout << "APOP string =" << str << "=" << endl;
+
+    msg = "-ERR Command APOP in AUTHORIZATION state failed! Wrong arguments of APOP.\r\n";
     pos = str.find(" ");
 
     if (pos == std::string::npos) {
-        msg = "-ERR Command APOP in AUTHORIZATION state failed! Wrong arguments of APOP.\r\n";
         thread_send(socket, msg);
     }
     else {
-        /*
-        cmd = str.substr(0, pos);
-        ARGS = str.substr(pos+1, str.length());
-        */
-        msg = "APOP:TODO";
-        thread_send(socket, msg);
+        username = str.substr(0, pos);
+        digest = str.substr(pos+1, str.length());
     }
+    cout << "USERNAME =" << args->username << "=" << endl;
+    cout << "APOP username =" << username << "=" << endl;
+    cout << "APOP digest =" << digest << "=" << endl;
+    cout << endl;
     return;
 }
 

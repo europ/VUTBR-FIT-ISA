@@ -1,12 +1,16 @@
 LOGIN=xtotha01
 CC=g++
-CF=-Wall -Wextra -pedantic -std=c++11 -pthread -lcrypto -lssl
+CF=-Wall -Wextra -pedantic -std=c++11 -pthread
 PROJECT=popser
 TARFILES=$(PROJECT).cpp README Makefile manual.pdf
 
 .PHONY: make
 make:
 	$(CC) $(CF) $(PROJECT).cpp -o $(PROJECT)
+
+.PHONY: md5
+md5:
+	$(CC) $(CF) -lcrypto -lssl $(PROJECT).cpp -o $(PROJECT)
 
 .PHONY: tar
 tar:
