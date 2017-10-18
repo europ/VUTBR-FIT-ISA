@@ -1,25 +1,23 @@
-.PHONY: make
-
+LOGIN=xtotha01
 CC=g++
 CF=-Wall -Wextra -pedantic -std=c++11 -pthread -lcrypto -lssl
-PROJ=popser
-TARFILES=$(PROJ).cpp README Makefile manual.pdf
-TARNAME=xtotha01
+PROJECT=popser
+TARFILES=$(PROJECT).cpp README Makefile manual.pdf
 
-$(PROJ): $(PROJ).cpp
-	$(CC) $(CF) $(PROJ).cpp -o $(PROJ)
+.PHONY: make
+make:
+	$(CC) $(CF) $(PROJECT).cpp -o $(PROJECT)
 
+.PHONY: tar
 tar:
-	tar -cvf $(TARNAME).tar $(TARFILES)
+	tar -cvf $(LOGIN).tar $(TARFILES)
 
-md5:
-	@g++ -Wall -Wextra -pedantic -std=c++11 -pthread -lcrypto -lssl md5.cpp -o md5
-
+.PHONY: test
 test:
 	@$(CC) $(CF) test.cpp -o test
 
+.PHONY: clean
 clean:
-	@rm -f $(PROJ)
-	@rm -f $(TARNAME).tar
-	@rm -f md5
+	@rm -f $(PROJECT)
+	@rm -f $(LOGIN).tar
 	@rm -f test

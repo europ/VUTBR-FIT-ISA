@@ -24,7 +24,9 @@
 
 using namespace std;
 
+//#define md5
 #define HOSTNAME_LENGTH 64
+#define PORT_MAX 65535
 
 // enum for states
 enum State {
@@ -221,10 +223,14 @@ void argpar(int* argc, char* argv[], Args* args) {
                 fprintf(stderr, "Wrong port!\n");
                 exit(1);
             }
-            // else {
-            //     // TODO FIXIT
-            //     // check port size (range)
-            // }
+            else {
+                const char* str = args->port.c_str();
+                long int number = strtol(str, NULL, 10);
+                if ((number < 0) || (PORT_MAX < number) || (errno == ERANGE)) {
+                    fprintf(stderr, "Wrong port!\n");
+                    exit(1);
+                }
+            }
         }
 
         // check authentication file existence
@@ -365,6 +371,7 @@ std::string get_greeting_banner() {
     return str;
 }
 
+#ifdef md5
 std::string get_md5_hash(std::string& greeting_banner, std::string& password) {
 
     std::string hash;
@@ -384,6 +391,7 @@ std::string get_md5_hash(std::string& greeting_banner, std::string& password) {
 
     return hash;
 }
+#endif
 
 // Passed function to thread which define behaviour of thread
 void thread_main(int socket, Args* args) {
