@@ -4,7 +4,7 @@
  * @brief      POP3 server
  */
 
-#define md5
+//#define md5
 
 #include <iostream>
 #include <string>
@@ -14,6 +14,7 @@
 #include <sstream>
 #include <fstream>
 #include <ctime>
+
 #include <fcntl.h>
 #include <string.h>
 #include <unistd.h>
@@ -69,6 +70,9 @@ class Args {
         std::string path_d = "";
         std::string username = "";
         std::string password = "";
+        std::string path_maildir_new = "";
+        std::string path_maildir_cur = "";
+        std::string path_maildir_tmp = "";
 };
 
 // print the help message to stdout and terminate the program
@@ -101,6 +105,22 @@ bool is_number(const char* str) {
             ++str;
     }
     return true;
+}
+
+// check if file is readable
+bool file_is_readable(std::string filename) {
+    std::ifstream file(filename);
+    return file.good() ? true : false;
+}
+
+// function get the file size in octets
+std::string file_size(std::string filename) {
+    std::ifstream in(filename, std::ifstream::ate | std::ifstream::binary);
+    std::stringstream ss;
+    std::string str;
+    ss << in.tellg();
+    ss >> str;
+    return str; 
 }
 
 // check if FILE exists
@@ -167,6 +187,31 @@ void load_auth_file(Args* args) { // TODO FIXIT
 
     args->password = buff;
     fclose(fd);
+}
+
+void analyze_maildir(Args* args) {
+
+    args->path_maildir_new = args->path_maildir_cur = args->path_maildir_tmp = args->path_d;
+
+    if (args->path_d.back() == '/') {
+        args->path_maildir_new.append("new");
+        args->path_maildir_cur.append("cur");
+        args->path_maildir_tmp.append("tmp");
+    }
+    else {
+        args->path_maildir_new.append("/new");
+        args->path_maildir_cur.append("/cur");
+        args->path_maildir_tmp.append("/tmp");
+    }
+
+    if (!dir_exists(args->path_maildir_new) || !dir_exists(args->path_maildir_cur) || !dir_exists(args->path_maildir_tmp)) {
+        fprintf(stderr, "Wrong folder structure of maildir!\n");
+        exit(1);
+    }
+
+    // TODO create log files
+
+    return;
 }
 
 // parsing arguments and initializating class args
@@ -240,11 +285,17 @@ void argpar(int* argc, char* argv[], Args* args) {
         // check authentication file existence
         if (args->a) {
             if (!file_exists(args->path_a)) {
-                fprintf(stderr, "Wrong authentication file!\n");
+                fprintf(stderr, "Authentication file does not exist!\n");
                 exit(1);
             }
             else {
-                load_auth_file(args);
+                if (file_is_readable(args->path_a)) {
+                    load_auth_file(args);
+                }
+                else {
+                    fprintf(stderr, "Authentication file is not readable!\n");
+                    exit(1);
+                }
             }
         }
 
@@ -253,6 +304,9 @@ void argpar(int* argc, char* argv[], Args* args) {
             if (!dir_exists(args->path_d)) {
                 fprintf(stderr, "Wrong maildir direcotry!\n");
                 exit(1);
+            }
+            else {
+                analyze_maildir(args);
             }
         }
     }
@@ -614,7 +668,15 @@ void thread_main(int socket, Args* args) {
                     case STAT:
                         break;
                     // ==================================================
-                    case LIST:
+                    case LIST: // LIST
+                        if (!CMD_ARGS.empty()) {
+                            msg = "+OK LIST\r\n";
+                            thread_send(socket, msg);
+                        }
+                        else { // LIST str
+                            msg = "+OK LIST [str]\r\n";
+                            thread_send(socket, msg);
+                        }
                         break;
                     // ==================================================
                     case RETR:

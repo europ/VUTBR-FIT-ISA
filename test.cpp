@@ -1,29 +1,29 @@
 #include <iostream>
 #include <string>
 
-#include <ctime>
-#include <sys/types.h>
-#include <unistd.h>
+#include <fstream>
+#include <sstream>
 
-#define HOSTNAME_LENGTH 64
+std::string file_size(std::string filename)
+{
+    std::ifstream in(filename, std::ifstream::ate | std::ifstream::binary);
+    std::stringstream ss;
+    std::string str;
+    ss << in.tellg();
+    ss >> str;
+    return str; 
+}
 
-int main(/*int argc, char* argv[]*/) {
-
-
-    time_t t = time(NULL);
-    pid_t  p = getpid();
-    int retval;
-
-    char hostname[HOSTNAME_LENGTH];
-    retval = gethostname(hostname, HOSTNAME_LENGTH);
-    if(retval != 0) {
-        fprintf(stderr, "gethostname() failed!\n");
+int main(int argc, char* argv[]) {
+    
+    if (argc != 2) {
+        fprintf(stderr, "USAGE: ./test <filepath>");
         exit(1);
     }
 
-    std::cout << t << std::endl;
-    std::cout << p << std::endl;
-    std::cout << hostname << std::endl;
+    std::string size = file_size(argv[1]);
+
+    std::cout << size;
 
     return 0;
 }
