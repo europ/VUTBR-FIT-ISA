@@ -19,6 +19,7 @@
 #include <fcntl.h>
 #include <string.h>
 #include <unistd.h>
+#include <dirent.h>
 #include <arpa/inet.h>
 #include <sys/stat.h>
 #include <sys/socket.h>
@@ -128,7 +129,7 @@ std::string file_size(std::string filename) {
     std::string str;
     ss << in.tellg();
     ss >> str;
-    return str; 
+    return str;
 }
 
 // Check if FILE exists
@@ -192,6 +193,53 @@ void load_auth_file(Args* args) { // TODO FIXIT
     args->password = buff;
 
     fclose(fd);
+}
+
+// Function get the realpath of every file (only file) in directory
+std::vector<std::string> list_dir(std::string dirpath) {
+
+    std::vector<std::string> files;
+    std::string data;
+
+    struct dirent *entry;
+    DIR *dir = opendir(dirpath.c_str());
+    if (dir == NULL) {
+        return files;
+    }
+    while ((entry = readdir(dir)) != NULL) {
+        data = entry->d_name;
+        if (file_exists(data)) {
+            data = realpath(data.c_str(), NULL); // TODO FIXIT realpath may return NULL
+            files.push_back(data);
+        }
+    }
+    closedir(dir);
+
+    return files;
+}
+
+// Function move file to specified directory
+bool move_file(std::string filepath, std::string dirpath) {
+
+    if (filepath.empty() || dirpath.empty()) {
+        return false;
+    }
+
+    if (!file_exists(filepath) || !dir_exists(dirpath)) {
+        return false;
+    }
+
+    std::string filename, newfilepath;
+    filename = filepath.substr(filepath.find_last_of("/")+1, std::string::npos);
+    newfilepath = (dirpath.back() == '/') ? dirpath : dirpath + "/";
+    newfilepath.append(filename);
+
+    int retval = rename(filepath.c_str(), newfilepath.c_str());
+    if (retval != 0) {
+        return false;
+    }
+
+    return true;
 }
 
 // Function checks the structure of maildir
