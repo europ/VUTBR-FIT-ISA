@@ -14,6 +14,7 @@
 #include <sstream>
 #include <fstream>
 #include <ctime>
+#include <csignal>
 
 #include <fcntl.h>
 #include <string.h>
@@ -80,21 +81,28 @@ void usage() {
     std::string message =
         "\n"
         "USAGE:\n"
-        "\tHELP:"
-        "\t[-h]\n"
+        "\tHELP:\n"
+        "\tNecessary parameter: [-h]\n"
         "\n"
         "\tRESET:\n"
-        "\t[-r]\n"
+        "\tNecessary parameter: [-r]\n"
         "\n"
-        "\tLAUNCH\n"
-        "\t[-a authentication_file] [-p port_numer] [-d mail_directory] (OPTIONAL: [-c] [-r])\n"
+        "\tLAUNCH:\n"
+        "\tNecessary parameters: [-a authentication_file] [-p port_numer] [-d mail_directory]\n"
+        "\tOptional  parameters: [-c] [-r]\n"
         "\n"
     ;
-    std::cout << message;
+    fprintf(stdout, "%s", message.c_str());
     exit(0);
 }
 
-// check string PORT if it consists from numbers only
+// Function used to handling SIGINT
+void signal_handler(int x) {
+    (void)x; // -Wunused-parameter
+    exit(0);
+}
+
+// Check string PORT if it consists from numbers only
 bool is_number(const char* str) {
     if (!*str)
         return false;
@@ -107,13 +115,13 @@ bool is_number(const char* str) {
     return true;
 }
 
-// check if file is readable
+// Check if file is readable
 bool file_is_readable(std::string filename) {
     std::ifstream file(filename);
     return file.good() ? true : false;
 }
 
-// function get the file size in octets
+// Function get the file size in octets
 std::string file_size(std::string filename) {
     std::ifstream in(filename, std::ifstream::ate | std::ifstream::binary);
     std::stringstream ss;
@@ -123,7 +131,7 @@ std::string file_size(std::string filename) {
     return str; 
 }
 
-// check if FILE exists
+// Check if FILE exists
 bool file_exists(const std::string path) {
     struct stat s;
     if((stat(path.c_str(),&s)==0)&&(s.st_mode & S_IFREG )) {
@@ -134,7 +142,7 @@ bool file_exists(const std::string path) {
     }
 }
 
-// check if DIRECTORY exists
+// Check if DIRECTORY exists
 bool dir_exists(const std::string& path) {
     struct stat s;
     if((stat(path.c_str(),&s)==0 )&&(s.st_mode & S_IFDIR)) {
@@ -145,7 +153,7 @@ bool dir_exists(const std::string& path) {
     }
 }
 
-// reset
+// Reset
 void reset() {
     // TODO
     // FIXIT
@@ -153,42 +161,40 @@ void reset() {
     exit(0);
 }
 
-// username and password loading from authentication file
+// Function loads username and password from authentication file
 void load_auth_file(Args* args) { // TODO FIXIT
 
     FILE* fd;
     fd = fopen(args->path_a.c_str(),"r");
-
     if (fd == NULL ) {
         fprintf(stderr, "Failed to open authentication file!\n");
         exit(1);
     }
 
-    char buff[4096];
     int retval;
-
+    char buff[4096];
     memset(&buff,0,sizeof(buff));
-    retval = fscanf(fd,"username = %s\n", buff  );
 
+    retval = fscanf(fd,"username = %s\n", buff);
     if (retval == 0) {
         fprintf(stderr, "Failed to load username from authentication file!\n");
         exit(1);
     }
-
     args->username = buff;
 
     memset(&buff,0,sizeof(buff));
-    retval = fscanf(fd,"password = %s",   buff  );
 
+    retval = fscanf(fd,"password = %s", buff);
     if (retval == 0) {
         fprintf(stderr, "Failed to load password from authentication file!\n");
         exit(1);
     }
-
     args->password = buff;
+
     fclose(fd);
 }
 
+// Function checks the structure of maildir
 void analyze_maildir(Args* args) {
 
     args->path_maildir_new = args->path_maildir_cur = args->path_maildir_tmp = args->path_d;
@@ -214,7 +220,7 @@ void analyze_maildir(Args* args) {
     return;
 }
 
-// parsing arguments and initializating class args
+// Parsing arguments and initializating class args
 void argpar(int* argc, char* argv[], Args* args) {
     // [-h] [-a PATH] [-c] [-p PORT] [-d PATH] [-r]
 
@@ -361,7 +367,7 @@ Command get_command(std::string& str) {
     else return COMMAND_ERROR;
 }
 
-// Parser for string which is in format COMMAND+' '+ARGUMENTS
+// Parser for string which is in format "COMMAND + ' ' + ARGUMENTS"
 void load_cmd_and_args(Command* CMD, std::string& ARGS, std::string& str) {
     std::string cmd;
     std::size_t pos = str.find(" ");
@@ -376,6 +382,7 @@ void load_cmd_and_args(Command* CMD, std::string& ARGS, std::string& str) {
     return;
 }
 
+// Function sends message to client via socket
 void thread_send(int socket, std::string& str) {
     // TODO FIXIT socket - what if socket is corrupted?
     send(socket, str.c_str(), str.length(), 0);
@@ -410,9 +417,10 @@ std::string get_greeting_banner() {
 
 #ifdef md5 // =====================================================================================
 
+// Function create a MD5 digest hash
 std::string get_md5_hash(std::string& greeting_banner, std::string& password) {
 
-    std::string hash;
+    std::string hash; // digest
     std::string input;
 
     input.append(greeting_banner);
@@ -430,6 +438,7 @@ std::string get_md5_hash(std::string& greeting_banner, std::string& password) {
     return hash;
 }
 
+// Function provide username and md5 hash validation
 int apop_parser(int socket, Args* args, std::string& str, std::string& greeting_banner) {
 
     std::string username;
@@ -499,7 +508,7 @@ void thread_main(int socket, Args* args) {
     GREETING_BANNER = get_greeting_banner();
     flag_USER = false;
 
-    // sending BANNER GREETING
+    // sending GREETING BANNER
     msg = "+OK POP3 server ready " + GREETING_BANNER + "\r\n";
     thread_send(socket, msg);
 
@@ -508,6 +517,7 @@ void thread_main(int socket, Args* args) {
         // RESET
         memset(&buff,0,sizeof(buff));
         CMD_ARGS.clear();
+        data.clear();
 
         // RECEIVE
         res = recv(socket, buff, 1024,0); // FIXIT TODO buffer size
@@ -532,7 +542,7 @@ void thread_main(int socket, Args* args) {
 
         load_cmd_and_args(&COMMAND, CMD_ARGS, data);
 
-        print_status(STATE,COMMAND);
+        print_status(STATE,COMMAND); // TODO: remove this + function definition
 
         switch(STATE){
             // ==========================================================
@@ -621,7 +631,7 @@ void thread_main(int socket, Args* args) {
                               thread_send(socket, msg);
                               STATE = TRANSACTION;
                             #else
-                              retval = retval; // -Wunused-variable
+                              (void)retval; // -Wunused-variable
                               msg = "+OK Authorized. MD5 is switched OFF\r\n";
                               thread_send(socket, msg);
                               STATE = TRANSACTION;
@@ -749,17 +759,21 @@ void server_kernel(Args* args) {
         fd_set fds;
         FD_ZERO(&fds);
         FD_SET(welcome_socket, &fds);
+
+        // setting up select which will wait until any I/O operation can be performed
         if (select(welcome_socket + 1, &fds, NULL, NULL, NULL) == -1) {
             fprintf(stderr, "select() failed!\n");
             continue;
         }
 
+        // accept a connection on a socket
         communication_socket = accept(welcome_socket, (struct sockaddr*)&sa_client, &sa_client_len);
         if (communication_socket == -1) { // TODO FIXIT - what to do if accept fails ??? WHAT? WHAT IS THIS ?
             fprintf(stderr, "accept() failed!\n");
             continue;
         }
 
+        // manipulate file descriptor
         flags = fcntl(communication_socket, F_GETFL, 0);
         retval = fcntl(communication_socket, F_SETFL, flags | O_NONBLOCK);
         if (retval < 0) {
@@ -767,16 +781,17 @@ void server_kernel(Args* args) {
             continue;
         }
 
-        // conection established
-
         std::thread thrd(thread_main, communication_socket, args);
         thrd.detach();
-
     }
+
+    return;
 }
 
 // The Main
 int main(int argc, char* argv[]) {
+
+    signal(SIGINT, signal_handler);
 
     Args args;
     argpar(&argc, argv, &args);
