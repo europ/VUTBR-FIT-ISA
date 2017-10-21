@@ -16,6 +16,17 @@ bool file_exists(const std::string path) {
     }
 }
 
+// Check if DIRECTORY exists
+bool dir_exists(const std::string& path) {
+    struct stat s;
+    if((stat(path.c_str(),&s)==0 )&&(s.st_mode & S_IFDIR)) {
+        return true;
+    }
+    else {
+        return false;
+    }
+}
+
 std::vector<std::string> list_dir(std::string dirpath) {
 
     std::vector<std::string> files;
@@ -38,6 +49,29 @@ std::vector<std::string> list_dir(std::string dirpath) {
     return files;
 }
 
+bool move_file(std::string filepath, std::string dirpath) {
+
+    if (filepath.empty() || dirpath.empty()) {
+        return false;
+    }
+
+    if (!file_exists(filepath) || !dir_exists(dirpath)) {
+        return false;
+    }
+    
+    std::string filename, newfilepath;
+    filename = filepath.substr(filepath.find_last_of("/")+1, std::string::npos);
+    newfilepath = (dirpath.back() == '/') ? dirpath : dirpath + "/";
+    newfilepath.append(filename);
+
+    int retval = rename(filepath.c_str(), newfilepath.c_str());
+    if (retval != 0) {
+        return false;
+    }
+
+    return true;
+}
+
 int main(int argc, char* argv[]) {
     
     if (argc != 2) {
@@ -51,6 +85,16 @@ int main(int argc, char* argv[]) {
         for (auto i = files.begin(); i != files.end(); ++i) {
             std::cout << *i << std::endl;
         }
+    }
+
+    std::cout << std::endl;
+
+    bool retval = move_file("/home/adrian/Downloads/file_test.asd", "/home/adrian/Downloads/test_directory");
+    if (retval) {
+        std::cout << "+" << std::endl;
+    }
+    else {
+        std::cout << "-" << std::endl;
     }
 
     return 0;
