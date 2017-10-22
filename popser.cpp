@@ -156,10 +156,7 @@ bool dir_exists(const std::string& path) {
 
 // Reset
 void reset() {
-    // TODO
-    // FIXIT
     std::cout << "TODO: reset()" << std::endl;
-    exit(0);
 }
 
 // Function loads username and password from authentication file
@@ -207,7 +204,8 @@ std::vector<std::string> list_dir(std::string dirpath) {
         return files;
     }
     while ((entry = readdir(dir)) != NULL) {
-        data = entry->d_name;
+        data = (dirpath.back() == '/') ? dirpath : dirpath + "/";
+        data.append(entry->d_name);
         if (file_exists(data)) {
             data = realpath(data.c_str(), NULL); // TODO FIXIT realpath may return NULL
             files.push_back(data);
@@ -242,6 +240,26 @@ bool move_file(std::string filepath, std::string dirpath) {
     return true;
 }
 
+void move_new_to_curr(Args* args) {
+    std::vector<std::string> files;
+    files = list_dir(args->path_maildir_new);
+    if (!files.empty()) {
+        for (auto i = files.begin(); i != files.end(); ++i) {
+            move_file(*i, args->path_maildir_cur);
+        }
+    }
+}
+
+void list_dirfiles_to_file(std::ofstream& file, std::string dir) {
+    std::vector<std::string> dir_content;
+    dir_content = list_dir(dir);
+    if (!dir_content.empty()) {
+        for (auto i = dir_content.begin(); i != dir_content.end(); ++i) {
+            file << *i << std::endl;
+        }
+    }
+}
+
 // Function checks the structure of maildir
 void analyze_maildir(Args* args) {
 
@@ -263,7 +281,12 @@ void analyze_maildir(Args* args) {
         exit(1);
     }
 
-    // TODO create log files
+    if (!file_exists("log")) {
+        std::ofstream outfile("log");
+        list_dirfiles_to_file(outfile, args->path_maildir_new);
+        list_dirfiles_to_file(outfile, args->path_maildir_cur);
+        outfile.close();
+    }
 
     return;
 }
@@ -282,6 +305,7 @@ void argpar(int* argc, char* argv[], Args* args) {
     // check for "-r" (reset only)
     if (*argc == 2 && (strcmp(argv[1], "-r") == 0)) {
         reset();
+        exit(0);
     }
 
     // check for other options
@@ -362,6 +386,11 @@ void argpar(int* argc, char* argv[], Args* args) {
             else {
                 analyze_maildir(args);
             }
+        }
+
+        // provide reset
+        if (args->r) {
+            reset();
         }
     }
 }
@@ -580,7 +609,22 @@ void thread_main(int socket, Args* args) {
             return;
         }
 
+        /*
+        if (strlen(buff) < 2) continue; // 0-1 chars received
+        else { // 2-N chars received
+            if (strcmp("\r\n",buff) == 0) continue; // only CRLF received
+            else {
+                data = buff;
+                if (data.substr(data.length()-2) != "\r\n") { // data without CRLF received
+                    ; // TODO
+                }
+            }
+        }
+        */
+
         if (strcmp("\r\n",buff) == 0) continue; // only CRLF received
+
+        if (data.substr(data.length()-2) != "\r\n")
 
         // ADD BUFFER TO C++ STIRING
         data = buff;
@@ -844,6 +888,7 @@ int main(int argc, char* argv[]) {
     Args args;
     argpar(&argc, argv, &args);
 
+    move_new_to_curr(&args);
     server_kernel(&args);
 
     return 0;
