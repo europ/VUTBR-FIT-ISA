@@ -6,15 +6,15 @@
 
 //#define md5
 
-#include <iostream>
+#include <ctime>
+#include <mutex>
 #include <string>
 #include <vector>
 #include <thread>
-#include <algorithm>
-#include <sstream>
 #include <fstream>
-#include <ctime>
 #include <csignal>
+#include <iostream>
+#include <algorithm>
 
 #include <fcntl.h>
 #include <string.h>
@@ -34,6 +34,8 @@ using namespace std;
 
 #define HOSTNAME_LENGTH 64
 #define PORT_MAX 65535
+
+bool flag_exit = false;
 
 // enum for states
 enum State {
@@ -100,6 +102,7 @@ void usage() {
 // Function used to handling SIGINT
 void signal_handler(int x) {
     (void)x; // -Wunused-parameter
+    flag_exit = true;
     exit(0);
 }
 
@@ -124,12 +127,11 @@ bool file_is_readable(std::string filename) {
 
 // Function get the file size in octets
 std::string file_size(std::string filename) {
-    std::ifstream in(filename, std::ifstream::ate | std::ifstream::binary);
-    std::stringstream ss;
-    std::string str;
-    ss << in.tellg();
-    ss >> str;
-    return str;
+    FILE* file;
+    file = fopen(filename.c_str(),"rb");
+    fseek(file, 0L, SEEK_END);
+    long long unsigned int size = ftell(file);
+    return std::to_string(size);
 }
 
 // Check if FILE exists
@@ -577,6 +579,7 @@ void thread_main(int socket, Args* args) {
     Command COMMAND;
     std::string msg;
     std::string data;
+    std::mutex mutex;
     std::string CMD_ARGS;
     std::string GREETING_BANNER;
 
@@ -590,6 +593,12 @@ void thread_main(int socket, Args* args) {
     thread_send(socket, msg);
 
     while(1) {
+
+        if (flag_exit) {
+            // TODO send message to client about killing server
+            close(socket);
+            return;
+        }
 
         // RESET
         memset(&buff,0,sizeof(buff));
@@ -666,43 +675,63 @@ void thread_main(int socket, Args* args) {
                         break;
                     // ==================================================
                     case USER:
-                        if (!CMD_ARGS.empty()) { // USER str
-                            if (args->username.compare(CMD_ARGS) == 0 ) { // USER USERNAME
-                                flag_USER = true;
-                                msg = "+OK Userame is valid.\r\n";
-                                thread_send(socket, msg);
+                        if (args->c) { // USER command is supported
+                            if (!CMD_ARGS.empty()) { // USER str
+                                if (args->username.compare(CMD_ARGS) == 0 ) { // USER USERNAME
+                                    flag_USER = true;
+                                    msg = "+OK Userame is valid.\r\n";
+                                    thread_send(socket, msg);
+                                }
+                                else { // USER wrongstr
+                                    msg = "-ERR Invalid username!\r\n";
+                                    thread_send(socket, msg);
+                                }
                             }
-                            else { // USER wrongstr
-                                msg = "-ERR Invalid username!\r\n";
+                            else { // USER
+                                msg = "-ERR Command USER in AUTHORIZATION state has no argument!\r\n";
                                 thread_send(socket, msg);
                             }
                         }
-                        else { // USER
-                            msg = "-ERR Command USER in AUTHORIZATION state has no argument!\r\n";
+                        else { // USER command is NOT supported
+                            msg = "-ERR Command USER in AUTHORIZATION state is not supported!\r\n";
                             thread_send(socket, msg);
                         }
                         break;
                     // ==================================================
                     case PASS:
-                        if (flag_USER) { // USERNAME was
-                            if (!CMD_ARGS.empty()) { // PASS str
-                                if (args->password.compare(CMD_ARGS) == 0 ) { // PASS PASSWORD
-                                    msg = "+OK Password is valid. Authorized.\r\n";
-                                    thread_send(socket, msg);
-                                    STATE = TRANSACTION;
+                        if (args->c) { // PASS command is supported
+                            if (flag_USER) { // USERNAME was
+                                if (!CMD_ARGS.empty()) { // PASS str
+                                    if (args->password.compare(CMD_ARGS) == 0 ) { // PASS PASSWORD
+
+                                        msg = "+OK Password is valid. Authorized.\r\n";
+                                        thread_send(socket, msg);
+
+                                        if (!mutex.try_lock()) {
+                                            msg = "-ERR Maildrop cannot be opened because of locked mutex!\r\n";
+                                            thread_send(socket, msg);
+                                        }
+
+                                        STATE = TRANSACTION;
+
+                                    }
+                                    else { // PASS wrongstr
+                                        msg = "-ERR Invalid password!\r\n";
+                                        thread_send(socket, msg);
+                                    }
                                 }
-                                else { // PASS wrongstr
-                                    msg = "-ERR Invalid password!\r\n";
+                                else { // PASS
+                                    msg = "-ERR Command PASS in AUTHORIZATION state has no argument!\r\n";
                                     thread_send(socket, msg);
                                 }
                             }
-                            else { // PASS
-                                msg = "-ERR Command PASS in AUTHORIZATION state has no argument!\r\n";
+                            else { // USERNAME was not
+                                msg = "-ERR Missing command USER in AUTHORIZATION before PASS!\r\n";
                                 thread_send(socket, msg);
                             }
                         }
-                        else { // USERNAME was not
-                            msg = "-ERR Missing command USER in AUTHORIZATION before PASS!\r\n";
+                        else { // PASS command is NOT supported
+                            msg = "-ERR Command PASS in AUTHORIZATION state is not supported!\r\n";
                             thread_send(socket, msg);
                         }
                         break;
@@ -715,19 +744,35 @@ void thread_main(int socket, Args* args) {
                         else { // APOP str
 
                             #ifdef md5
-                              retval = apop_parser(socket, args, CMD_ARGS, GREETING_BANNER);
-                              if (retval == 1) {
-                                  break;
-                              }
-                              msg = "+OK Authorized.\r\n";
-                              thread_send(socket, msg);
-                              STATE = TRANSACTION;
-                            #else
-                              (void)retval; // -Wunused-variable
-                              msg = "+OK Authorized. MD5 is switched OFF\r\n";
-                              thread_send(socket, msg);
-                              STATE = TRANSACTION;
-                            #endif
+
+                                retval = apop_parser(socket, args, CMD_ARGS, GREETING_BANNER);
+                                if (retval == 1) {
+                                    break;
+                                }
+                                msg = "+OK Authorized.\r\n";
+                                thread_send(socket, msg);
+
+                                if (!mutex.try_lock()) {
+                                    msg = "-ERR Maildrop cannot be opened because of locked mutex!\r\n";
+                                    thread_send(socket, msg);
+                                }
+
+                                STATE = TRANSACTION;
+
+                            #else // REMOVE THIS ########################################
+
+                                (void)retval; // -Wunused-variable
+                                msg = "+OK Authorized. MD5 is switched OFF\r\n";
+                                thread_send(socket, msg);
+
+                                if (!mutex.try_lock()) {
+                                    msg = "-ERR Maildrop cannot be opened because of locked mutex!\r\n";
+                                    thread_send(socket, msg);
+                                }
+
+                                STATE = TRANSACTION;
+
+                            #endif // ###################################################
                         }
                         break;
                     // ==================================================
@@ -739,6 +784,9 @@ void thread_main(int socket, Args* args) {
                 break;
             // ==========================================================
             case TRANSACTION:
+
+                move_new_to_curr(args);
+
                 switch(COMMAND){
                     // ==================================================
                     case NOOP:
@@ -771,6 +819,7 @@ void thread_main(int socket, Args* args) {
                         break;
                     // ==================================================
                     case LIST: // LIST
+                        // TODO
                         if (!CMD_ARGS.empty()) {
                             msg = "+OK LIST\r\n";
                             thread_send(socket, msg);
@@ -798,10 +847,13 @@ void thread_main(int socket, Args* args) {
                 break;
             // ==========================================================
             case UPDATE:
+                // TODO
                 close(socket);
+                mutex.unlock();
+                return;
                 break;
             // ==========================================================
-            default:
+            default: // never happen, DONT TOUCH
                 break;
         }
     }
@@ -888,7 +940,6 @@ int main(int argc, char* argv[]) {
     Args args;
     argpar(&argc, argv, &args);
 
-    move_new_to_curr(&args);
     server_kernel(&args);
 
     return 0;

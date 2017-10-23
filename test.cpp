@@ -1,9 +1,22 @@
 #include <iostream>
 #include <string>
 #include <vector>
+#include <sstream>
+#include <fstream>
 
 #include <dirent.h>
 #include <sys/stat.h> // file_exists
+
+using namespace std;
+
+// Function get the file size in octets
+std::string file_size(std::string filename) {
+    FILE* file;
+    file = fopen(filename.c_str(),"rb");
+    fseek(file, 0L, SEEK_END);
+    long long unsigned int size = ftell(file);
+    return std::to_string(size);
+}
 
 // Check if FILE exists
 bool file_exists(const std::string path) {
@@ -75,10 +88,11 @@ bool move_file(std::string filepath, std::string dirpath) {
 int main(int argc, char* argv[]) {
     
     if (argc != 2) {
-        fprintf(stderr, "USAGE: ./test <dirpath>");
+        fprintf(stderr, "USAGE: ./test <filepath>");
         exit(1);
     }
 
+    /*
     std::vector<std::string> files;
     files = list_dir(argv[1]);
     if (!files.empty()) {
@@ -96,6 +110,10 @@ int main(int argc, char* argv[]) {
     else {
         std::cout << "-" << std::endl;
     }
+    */
+
+    std::string size = file_size(argv[1]);
+    cout << size << endl;
 
     return 0;
 }
