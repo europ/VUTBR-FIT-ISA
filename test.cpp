@@ -1,22 +1,12 @@
 #include <iostream>
 #include <string>
 #include <vector>
-#include <sstream>
+
 #include <fstream>
-
 #include <dirent.h>
-#include <sys/stat.h> // file_exists
+#include <sys/stat.h>
 
-using namespace std;
-
-// Function get the file size in octets
-std::string file_size(std::string filename) {
-    FILE* file;
-    file = fopen(filename.c_str(),"rb");
-    fseek(file, 0L, SEEK_END);
-    long long unsigned int size = ftell(file);
-    return std::to_string(size);
-}
+#define LOG_FILE_NAME "log"
 
 // Check if FILE exists
 bool file_exists(const std::string path) {
@@ -40,6 +30,7 @@ bool dir_exists(const std::string& path) {
     }
 }
 
+// Function get the realpath of every file (only file) in directory
 std::vector<std::string> list_dir(std::string dirpath) {
 
     std::vector<std::string> files;
@@ -51,7 +42,8 @@ std::vector<std::string> list_dir(std::string dirpath) {
         return files;
     }
     while ((entry = readdir(dir)) != NULL) {
-        data = entry->d_name;
+        data = (dirpath.back() == '/') ? dirpath : dirpath + "/";
+        data.append(entry->d_name);
         if (file_exists(data)) {
             data = realpath(data.c_str(), NULL); // TODO FIXIT realpath may return NULL
             files.push_back(data);
@@ -62,6 +54,7 @@ std::vector<std::string> list_dir(std::string dirpath) {
     return files;
 }
 
+// Function move file to specified directory
 bool move_file(std::string filepath, std::string dirpath) {
 
     if (filepath.empty() || dirpath.empty()) {
@@ -71,7 +64,7 @@ bool move_file(std::string filepath, std::string dirpath) {
     if (!file_exists(filepath) || !dir_exists(dirpath)) {
         return false;
     }
-    
+
     std::string filename, newfilepath;
     filename = filepath.substr(filepath.find_last_of("/")+1, std::string::npos);
     newfilepath = (dirpath.back() == '/') ? dirpath : dirpath + "/";
@@ -85,35 +78,30 @@ bool move_file(std::string filepath, std::string dirpath) {
     return true;
 }
 
-int main(int argc, char* argv[]) {
-    
-    if (argc != 2) {
-        fprintf(stderr, "USAGE: ./test <filepath>");
-        exit(1);
-    }
+void move_new_to_curr(std::string from_dir, std::string to_dir) {
 
-    /*
+    std::ofstream logfile;
+    logfile.open(LOG_FILE_NAME, std::fstream::out | std::fstream::app);
+
     std::vector<std::string> files;
-    files = list_dir(argv[1]);
+    files = list_dir(from_dir);
     if (!files.empty()) {
         for (auto i = files.begin(); i != files.end(); ++i) {
-            std::cout << *i << std::endl;
+            if (move_file(*i, to_dir)) {
+                logfile << *i << std::endl;
+            }
+            else {
+                std::cout << "FAIL: move_file() - " << *i << std::endl; // TODO REMOVE THIS !
+            }
         }
     }
+}
 
-    std::cout << std::endl;
-
-    bool retval = move_file("/home/adrian/Downloads/file_test.asd", "/home/adrian/Downloads/test_directory");
-    if (retval) {
-        std::cout << "+" << std::endl;
-    }
-    else {
-        std::cout << "-" << std::endl;
-    }
-    */
-
-    std::string size = file_size(argv[1]);
-    cout << size << endl;
-
+int main(int argc, char* argv[]) {
+	if (argc != 3) {
+		fprintf(stderr, "USAGE: ./test \"from_dir\" \"to_dir\"");
+		exit(1);
+	}
+	move_new_to_curr(argv[1], argv[2]);
     return 0;
 }

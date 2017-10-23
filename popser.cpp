@@ -34,6 +34,7 @@ using namespace std;
 
 #define HOSTNAME_LENGTH 64
 #define PORT_MAX 65535
+#define LOG_FILE_NAME "log"
 
 bool flag_exit = false;
 
@@ -237,11 +238,17 @@ bool move_file(std::string filepath, std::string dirpath) {
 }
 
 void move_new_to_curr(Args* args) {
+
+    std::ofstream logfile;
+    logfile.open(LOG_FILE_NAME, std::fstream::out | std::fstream::app);
+
     std::vector<std::string> files;
     files = list_dir(args->path_maildir_new);
     if (!files.empty()) {
         for (auto i = files.begin(); i != files.end(); ++i) {
-            move_file(*i, args->path_maildir_cur);
+            if (move_file(*i, args->path_maildir_cur)) {
+                logfile << *i << std::endl;
+            }
         }
     }
 }
@@ -275,13 +282,6 @@ void analyze_maildir(Args* args) {
     if (!dir_exists(args->path_maildir_new) || !dir_exists(args->path_maildir_cur) || !dir_exists(args->path_maildir_tmp)) {
         fprintf(stderr, "Wrong folder structure of maildir!\n");
         exit(1);
-    }
-
-    if (!file_exists("log")) {
-        std::ofstream outfile("log");
-        list_dirfiles_to_file(outfile, args->path_maildir_new);
-        list_dirfiles_to_file(outfile, args->path_maildir_cur);
-        outfile.close();
     }
 
     return;
@@ -363,13 +363,7 @@ void argpar(int* argc, char* argv[], Args* args) {
                 exit(1);
             }
             else {
-                if (file_is_readable(args->path_a)) {
-                    load_auth_file(args);
-                }
-                else {
-                    fprintf(stderr, "Authentication file is not readable!\n");
-                    exit(1);
-                }
+                load_auth_file(args);
             }
         }
 
