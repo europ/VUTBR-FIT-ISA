@@ -151,9 +151,83 @@ bool dir_exists(const std::string& path) {
     }
 }
 
+std::vector<std::string> load_logfile() {
+
+    std::ifstream logfile(LOG_FILE_NAME);
+    std::vector<std::string> files;
+    std::string line;
+    while (std::getline(logfile, line)) {
+        files.push_back(line);
+    }
+
+    logfile.close();
+    return files;
+}
+
+bool filename_is_in_dir(std::string filename, std::string directory) {
+    std::string data;
+    data = (directory.back() == '/') ? directory : directory + "/";
+    data.append(filename);
+    return (file_exists(data)) ? true : false;
+}
+
+// Function move file to specified directory
+bool move_file(std::string filepath, std::string dirpath) {
+
+    if (filepath.empty() || dirpath.empty()) {
+        return false;
+    }
+
+    std::string filename, newfilepath;
+    filename = filepath.substr(filepath.find_last_of("/")+1, std::string::npos);
+    newfilepath = (dirpath.back() == '/') ? dirpath : dirpath + "/";
+    newfilepath.append(filename);
+
+    int retval = rename(filepath.c_str(), newfilepath.c_str());
+    if (retval != 0) {
+        return false;
+    }
+    return true;
+}
+
 // Reset
 void reset() {
-    std::cout << "TODO: reset()" << std::endl;
+
+    if (!file_exists(LOG_FILE_NAME)) {
+        return;
+    }
+
+    std::vector<std::string> files;
+    files = load_logfile();
+
+    std::string buff;
+    std::string path_cur;
+    std::string path_new;
+
+    buff = files.front();
+    buff = buff.substr(0, buff.find_last_of("/"));
+    buff = buff.substr(0, buff.find_last_of("/")+1);
+
+    path_cur = path_new = buff;
+
+    path_cur.append("cur");
+    path_new.append("new");
+
+    std::string filename;
+    std::string absfilepath;
+
+    for (auto i = files.begin(); i != files.end(); ++i) {
+        absfilepath = *i;
+        filename = absfilepath.substr(absfilepath.find_last_of("/")+1, std::string::npos);
+        buff = path_cur + "/" + filename;
+        if (filename_is_in_dir(filename,path_cur)) {
+            move_file(buff,path_new);
+        }
+    }
+
+    remove(LOG_FILE_NAME);
+
+    return;
 }
 
 // Function loads username and password from authentication file
@@ -211,30 +285,6 @@ std::vector<std::string> list_dir(std::string dirpath) {
     closedir(dir);
 
     return files;
-}
-
-// Function move file to specified directory
-bool move_file(std::string filepath, std::string dirpath) {
-
-    if (filepath.empty() || dirpath.empty()) {
-        return false;
-    }
-
-    if (!file_exists(filepath) || !dir_exists(dirpath)) {
-        return false;
-    }
-
-    std::string filename, newfilepath;
-    filename = filepath.substr(filepath.find_last_of("/")+1, std::string::npos);
-    newfilepath = (dirpath.back() == '/') ? dirpath : dirpath + "/";
-    newfilepath.append(filename);
-
-    int retval = rename(filepath.c_str(), newfilepath.c_str());
-    if (retval != 0) {
-        return false;
-    }
-
-    return true;
 }
 
 void move_new_to_curr(Args* args) {
@@ -850,6 +900,8 @@ void thread_main(int socket, Args* args) {
 
 // Function is the kernel of this program, set up connection and threads
 void server_kernel(Args* args) {
+
+    reset();
 
     int retval;
     int flags;
