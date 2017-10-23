@@ -119,12 +119,6 @@ bool is_number(const char* str) {
     return true;
 }
 
-// Check if file is readable
-bool file_is_readable(std::string filename) {
-    std::ifstream file(filename);
-    return file.good() ? true : false;
-}
-
 // Function get the file size in octets
 std::string file_size(std::string filename) {
     FILE* file;
