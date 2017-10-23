@@ -251,6 +251,7 @@ void move_new_to_curr(Args* args) {
             }
         }
     }
+    logfile.close();
 }
 
 void list_dirfiles_to_file(std::ofstream& file, std::string dir) {

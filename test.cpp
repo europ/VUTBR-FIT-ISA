@@ -95,6 +95,7 @@ void move_new_to_curr(std::string from_dir, std::string to_dir) {
             }
         }
     }
+    logfile.close();
 }
 
 int main(int argc, char* argv[]) {
