@@ -35,6 +35,7 @@ using namespace std;
 #define HOSTNAME_LENGTH 64
 #define PORT_MAX 65535
 #define LOG_FILE_NAME "log"
+#define DEL_FILE_NAME "del"
 
 bool flag_exit = false;
 
@@ -151,9 +152,9 @@ bool dir_exists(const std::string& path) {
     }
 }
 
-std::vector<std::string> load_logfile() {
+std::vector<std::string> load_file_lines_to_vector(std::string file) {
 
-    std::ifstream logfile(LOG_FILE_NAME);
+    std::ifstream logfile(file);
     std::vector<std::string> files;
     std::string line;
     while (std::getline(logfile, line)) {
@@ -187,6 +188,7 @@ bool move_file(std::string filepath, std::string dirpath) {
     if (retval != 0) {
         return false;
     }
+
     return true;
 }
 
@@ -198,7 +200,7 @@ void reset() {
     }
 
     std::vector<std::string> files;
-    files = load_logfile();
+    files = load_file_lines_to_vector(LOG_FILE_NAME);
 
     std::string buff;
     std::string path_cur;
@@ -208,24 +210,30 @@ void reset() {
     buff = buff.substr(0, buff.find_last_of("/"));
     buff = buff.substr(0, buff.find_last_of("/")+1);
 
-    path_cur = path_new = buff;
+    path_cur = buff;
+    path_new = buff;
 
     path_cur.append("cur");
     path_new.append("new");
 
     std::string filename;
-    std::string absfilepath;
+    std::string file_in_new;
+    std::string file_in_cur;
 
     for (auto i = files.begin(); i != files.end(); ++i) {
-        absfilepath = *i;
-        filename = absfilepath.substr(absfilepath.find_last_of("/")+1, std::string::npos);
-        buff = path_cur + "/" + filename;
-        if (filename_is_in_dir(filename,path_cur)) {
-            move_file(buff,path_new);
+        file_in_new = *i;
+        filename = file_in_new.substr(file_in_new.find_last_of("/")+1, std::string::npos);
+        file_in_cur = path_cur + "/" + filename;
+        if (filename_is_in_dir(filename, path_cur)) {
+            move_file(file_in_cur, path_new);
         }
     }
 
     remove(LOG_FILE_NAME);
+
+    if (file_exists(DEL_FILE_NAME)) {
+        remove(DEL_FILE_NAME);
+    }
 
     return;
 }
@@ -901,7 +909,9 @@ void thread_main(int socket, Args* args) {
 // Function is the kernel of this program, set up connection and threads
 void server_kernel(Args* args) {
 
-    reset();
+    if (args->r) {
+        reset();
+    }
 
     int retval;
     int flags;
