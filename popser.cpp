@@ -312,7 +312,7 @@ void load_auth_file(Args* args) { // TODO FIXIT
 }
 
 // Function get the realpath of every file (only file) in directory
-std::vector<std::string> list_dir(std::string dirpath) {
+std::vector<std::string> list_dir(std::string dirpath, bool FN_io_RP) { // FN_io_RP = FileName InsteadOf RealPath
 
     std::vector<std::string> files;
     std::string data;
@@ -326,8 +326,13 @@ std::vector<std::string> list_dir(std::string dirpath) {
         data = (dirpath.back() == '/') ? dirpath : dirpath + "/";
         data.append(entry->d_name);
         if (file_exists(data)) {
-            data = realpath(data.c_str(), NULL); // TODO FIXIT realpath may return NULL
-            files.push_back(data);
+            if (FN_io_RP) {
+                files.push_back(entry->d_name);
+            }
+            else {
+                data = realpath(data.c_str(), NULL); // TODO FIXIT realpath may return NULL
+                files.push_back(data);
+            }
         }
     }
     closedir(dir);
@@ -350,7 +355,7 @@ void move_new_to_curr(Args* args) {
     logfile.open(LOG_FILE_NAME, std::fstream::out | std::fstream::app);
 
     std::vector<std::string> files;
-    files = list_dir(args->path_maildir_new);
+    files = list_dir(args->path_maildir_new, false);
     if (!files.empty()) {
         for (auto i = files.begin(); i != files.end(); ++i) {
             if (move_file(*i, args->path_maildir_cur)) {
@@ -359,17 +364,6 @@ void move_new_to_curr(Args* args) {
         }
     }
     logfile.close();
-}
-
-// TODO what is this ? i dont know when i made this function ... why i cant remember ?
-void list_dirfiles_to_file(std::ofstream& file, std::string dir) {
-    std::vector<std::string> dir_content;
-    dir_content = list_dir(dir);
-    if (!dir_content.empty()) {
-        for (auto i = dir_content.begin(); i != dir_content.end(); ++i) {
-            file << *i << std::endl;
-        }
-    }
 }
 
 // Function checks the structure of maildir
@@ -565,6 +559,16 @@ void thread_send(int socket, std::string& str) {
     return;
 }
 
+unsigned int get_cur_size(std::vector<std::string>& files) {
+    files=files;
+    return 0;
+}
+
+void remove_deleted_files(std::vector<std::string>& files) {
+    files=files;
+    return;
+}
+
 // Function creates string for MD5 hash
 std::string get_greeting_banner() {
 
@@ -664,7 +668,7 @@ int apop_parser(int socket, Args* args, std::string& str, std::string& greeting_
 
 #endif //==========================================================================================
 
-// Passed function to thread which define behaviour of thread
+// Passed function to thread which define behavior of thread
 void thread_main(int socket, Args* args) {
 
     // DECLARATION
@@ -679,6 +683,7 @@ void thread_main(int socket, Args* args) {
     std::mutex mutex;
     std::string CMD_ARGS;
     std::string GREETING_BANNER;
+    std::vector<std::string> cur_files;
 
     // INITIALIZATION
     STATE = AUTHORIZATION;
@@ -690,6 +695,13 @@ void thread_main(int socket, Args* args) {
     thread_send(socket, msg);
 
     while(1) {
+
+        if (STATE == UPDATE) {
+            // TODO
+            close(socket);
+            mutex.unlock();
+            return;
+        }
 
         if (flag_exit) {
             // TODO send message to client about killing server
@@ -715,6 +727,7 @@ void thread_main(int socket, Args* args) {
             return;
         }
 
+
         /*
         if (strlen(buff) < 2) continue; // 0-1 chars received
         else { // 2-N chars received
@@ -730,7 +743,7 @@ void thread_main(int socket, Args* args) {
 
         if (strcmp("\r\n",buff) == 0) continue; // only CRLF received
 
-        if (data.substr(data.length()-2) != "\r\n")
+        // if (data.substr(data.length()-2) != "\r\n") // TODO REMOVE THIS OR FIXIT - core dump
 
         // ADD BUFFER TO C++ STIRING
         data = buff;
@@ -741,6 +754,8 @@ void thread_main(int socket, Args* args) {
         load_cmd_and_args(&COMMAND, CMD_ARGS, data);
 
         print_status(STATE,COMMAND); // TODO: remove this + function definition
+
+        cur_files = list_dir(args->path_maildir_cur, true);
 
         switch(STATE){
             // ==========================================================
@@ -916,6 +931,26 @@ void thread_main(int socket, Args* args) {
                         break;
                     // ==================================================
                     case LIST:
+                        if (CMD_ARGS.empty()) { // LIST
+
+                            unsigned int count; 
+                            unsigned int octets;
+                            std::vector<std::string> listing_files;
+
+                            listing_files = cur_files;
+                            remove_deleted_files(listing_files);
+
+                            count  = listing_files.size();
+                            octets = get_cur_size(listing_files);
+
+                            msg = "+OK " + std::to_string(count) + " messages (" + std::to_string(octets) + " octets)\r\n";
+                            thread_send(socket, msg);
+                            msg = "TODO send listed files\r\n";
+                            thread_send(socket, msg);
+                        }
+                        else { // LIST str
+
+                        }
                         break;
                     // ==================================================
                     case RETR:
@@ -932,13 +967,6 @@ void thread_main(int socket, Args* args) {
                         thread_send(socket, msg);
                         break;
                 }
-                break;
-            // ==========================================================
-            case UPDATE:
-                // TODO
-                close(socket);
-                mutex.unlock();
-                return;
                 break;
             // ==========================================================
             default: // never happen, DONT TOUCH
