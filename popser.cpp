@@ -32,8 +32,8 @@
 
 using namespace std;
 
-#define HOSTNAME_LENGTH 64
 #define PORT_MAX 65535
+#define HOSTNAME_LENGTH 64
 #define LOG_FILE_NAME "log"
 #define DEL_FILE_NAME "del"
 
@@ -157,11 +157,13 @@ std::vector<std::string> load_file_lines_to_vector(std::string file) {
     std::ifstream logfile(file);
     std::vector<std::string> files;
     std::string line;
+
     while (std::getline(logfile, line)) {
         files.push_back(line);
     }
 
     logfile.close();
+
     return files;
 }
 
@@ -293,6 +295,13 @@ std::vector<std::string> list_dir(std::string dirpath) {
     closedir(dir);
 
     return files;
+}
+
+void append_line_to_file(std::string data, std::string filepath) {
+    std::ofstream file;
+    file.open(filepath, std::fstream::out | std::fstream::app);
+    file << data << endl;
+    file.close();
 }
 
 void move_new_to_curr(Args* args) {
