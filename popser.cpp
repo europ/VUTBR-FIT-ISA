@@ -36,6 +36,9 @@ using namespace std;
 #define HOSTNAME_LENGTH 64
 #define LOG_FILE_NAME "log"
 #define DEL_FILE_NAME "del"
+#define ID_LENGTH 20
+#define ID_CHARS "!\"#$%&'()*+,-." /* excluding SLASH */   "0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~"
+
 
 bool flag_exit = false;
 
@@ -81,7 +84,7 @@ class Args {
         std::string path_maildir_tmp = "";
 };
 
-// print the help message to stdout and terminate the program
+// Print the help message to stdout and terminate the program
 void usage() {
     std::string message =
         "\n"
@@ -106,6 +109,22 @@ void signal_handler(int x) {
     (void)x; // -Wunused-parameter
     flag_exit = true;
     exit(0);
+}
+
+// Function generate a random server-determined string for message ID
+std::string id_generator() {
+
+    unsigned length = ID_LENGTH;
+    char alphanum[] = ID_CHARS;
+    std::string str = "";
+
+    srand(std::clock());
+
+    for (unsigned i = 0; i < length; ++i) {
+        str += alphanum[rand() % (sizeof(alphanum) - 1)];
+    }
+
+    return str;
 }
 
 // Check string PORT if it consists from numbers only
@@ -152,6 +171,7 @@ bool dir_exists(const std::string& path) {
     }
 }
 
+// Function load file content line by line as std::string to a std::vector
 std::vector<std::string> load_file_lines_to_vector(std::string file) {
 
     std::ifstream logfile(file);
@@ -167,6 +187,7 @@ std::vector<std::string> load_file_lines_to_vector(std::string file) {
     return files;
 }
 
+// Function check if filename is in directory
 bool filename_is_in_dir(std::string filename, std::string directory) {
     std::string data;
     data = (directory.back() == '/') ? directory : directory + "/";
@@ -297,6 +318,7 @@ std::vector<std::string> list_dir(std::string dirpath) {
     return files;
 }
 
+// Function appends a one line (string) to a file
 void append_line_to_file(std::string data, std::string filepath) {
     std::ofstream file;
     file.open(filepath, std::fstream::out | std::fstream::app);
@@ -304,6 +326,7 @@ void append_line_to_file(std::string data, std::string filepath) {
     file.close();
 }
 
+// Function move content of maildir/new to maildir/curr
 void move_new_to_curr(Args* args) {
 
     std::ofstream logfile;
@@ -321,6 +344,7 @@ void move_new_to_curr(Args* args) {
     logfile.close();
 }
 
+// TODO what is this ? i dont know when i made this function ... why i cant remember ?
 void list_dirfiles_to_file(std::ofstream& file, std::string dir) {
     std::vector<std::string> dir_content;
     dir_content = list_dir(dir);
