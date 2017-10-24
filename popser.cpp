@@ -36,6 +36,7 @@ using namespace std;
 #define HOSTNAME_LENGTH 64
 #define LOG_FILE_NAME "log"
 #define DEL_FILE_NAME "del"
+#define DATA_FILE_NAME "data"
 #define ID_LENGTH 20
 #define ID_CHARS "!\"#$%&'()*+,-." /* excluding SLASH */   "0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~"
 
@@ -111,22 +112,6 @@ void signal_handler(int x) {
     exit(0);
 }
 
-// Function generate a random server-determined string for message ID
-std::string id_generator() {
-
-    unsigned length = ID_LENGTH;
-    char alphanum[] = ID_CHARS;
-    std::string str = "";
-
-    srand(std::clock());
-
-    for (unsigned i = 0; i < length; ++i) {
-        str += alphanum[rand() % (sizeof(alphanum) - 1)];
-    }
-
-    return str;
-}
-
 // Check string PORT if it consists from numbers only
 bool is_number(const char* str) {
     if (!*str)
@@ -138,15 +123,6 @@ bool is_number(const char* str) {
             ++str;
     }
     return true;
-}
-
-// Function get the file size in octets
-std::string file_size(std::string filename) {
-    FILE* file;
-    file = fopen(filename.c_str(),"rb");
-    fseek(file, 0L, SEEK_END);
-    long long unsigned int size = ftell(file);
-    return std::to_string(size);
 }
 
 // Check if FILE exists
@@ -171,20 +147,16 @@ bool dir_exists(const std::string& path) {
     }
 }
 
-// Function load file content line by line as std::string to a std::vector
-std::vector<std::string> load_file_lines_to_vector(std::string file) {
-
-    std::ifstream logfile(file);
-    std::vector<std::string> files;
+// Function return true/false on status of file deleted/non-deleted
+bool is_file_deleted(std::string filename) {
+    std::ifstream file(DEL_FILE_NAME);
     std::string line;
-
-    while (std::getline(logfile, line)) {
-        files.push_back(line);
+    while (std::getline(file, line)) {
+        if (filename.compare(line) == 0) {
+            return true;
+        }
     }
-
-    logfile.close();
-
-    return files;
+    return false;
 }
 
 // Function check if filename is in directory
@@ -213,6 +185,47 @@ bool move_file(std::string filepath, std::string dirpath) {
     }
 
     return true;
+}
+
+// Function generate a random server-determined string for message ID
+std::string id_generator() {
+
+    unsigned length = ID_LENGTH;
+    char alphanum[] = ID_CHARS;
+    std::string str = "";
+
+    srand(std::clock());
+
+    for (unsigned i = 0; i < length; ++i) {
+        str += alphanum[rand() % (sizeof(alphanum) - 1)];
+    }
+
+    return str;
+}
+
+// Function get the file size in octets
+std::string file_size(std::string filename) {
+    FILE* file;
+    file = fopen(filename.c_str(),"rb");
+    fseek(file, 0L, SEEK_END);
+    long long unsigned int size = ftell(file);
+    return std::to_string(size);
+}
+
+// Function load file content line by line as std::string to a std::vector
+std::vector<std::string> load_file_lines_to_vector(std::string file) {
+
+    std::ifstream logfile(file);
+    std::vector<std::string> files;
+    std::string line;
+
+    while (std::getline(logfile, line)) {
+        files.push_back(line);
+    }
+
+    logfile.close();
+
+    return files;
 }
 
 // Reset
@@ -256,6 +269,10 @@ void reset() {
 
     if (file_exists(DEL_FILE_NAME)) {
         remove(DEL_FILE_NAME);
+    }
+
+    if (file_exists(DATA_FILE_NAME)) {
+        remove(DATA_FILE_NAME);
     }
 
     return;
@@ -322,7 +339,7 @@ std::vector<std::string> list_dir(std::string dirpath) {
 void append_line_to_file(std::string data, std::string filepath) {
     std::ofstream file;
     file.open(filepath, std::fstream::out | std::fstream::app);
-    file << data << endl;
+    file << data << std::endl;
     file.close();
 }
 
@@ -898,16 +915,7 @@ void thread_main(int socket, Args* args) {
                     case STAT:
                         break;
                     // ==================================================
-                    case LIST: // LIST
-                        // TODO
-                        if (!CMD_ARGS.empty()) {
-                            msg = "+OK LIST\r\n";
-                            thread_send(socket, msg);
-                        }
-                        else { // LIST str
-                            msg = "+OK LIST [str]\r\n";
-                            thread_send(socket, msg);
-                        }
+                    case LIST:
                         break;
                     // ==================================================
                     case RETR:

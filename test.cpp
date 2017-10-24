@@ -1,31 +1,29 @@
 #include <iostream>
 #include <string>
-#include <ctime>
+#include <fstream>
 
-#define ID_LENGTH 20
-#define ID_CHARS "!\"#$%&'()*+,-." /* excluding SLASH */   "0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~"
+#define DEL_FILE_NAME "del"
 
-std::string id_generator() {
-
-    unsigned length = ID_LENGTH;
-    char alphanum[] = ID_CHARS;
-    std::string str = "";
-
-    srand(std::clock());
-
-    for (unsigned i = 0; i < length; ++i) {
-        str += alphanum[rand() % (sizeof(alphanum) - 1)];
+// Function return true/false on status of file deleted/non-deleted
+bool is_file_deleted(std::string filename) {
+    std::ifstream file(DEL_FILE_NAME);
+    std::string line;
+    while (std::getline(file, line)) {
+        if (filename.compare(line) == 0) {
+            return true;
+        }
     }
-
-    return str;
+    return false;
 }
 
 int main(int argc, char* argv[]) {
 
-    (void)argc;
-    (void)argv;
+    if (argc != 2) {
+        fprintf(stderr, "USAGE: ./test \"filename\"");
+        exit(1);
+    }
 
-    std::cout << id_generator() << std::endl;
+    std::cout << ((is_file_deleted(argv[1])) ? "YES" : "NO") << std::endl;
 
     return 0;
 }
