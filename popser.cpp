@@ -261,7 +261,9 @@ void load_auth_file(Args* args) { // TODO FIXIT
 unsigned int get_size_summary(std::vector<std::string>& data) {
     unsigned int octets = 0;
     for (auto i = data.begin(); i != data.end(); ++i) {
-        octets += std::stoi((*i).substr((*i).find_last_of("/")+1, std::string::npos));
+        if ((*i).compare("") != 0) {
+            octets += std::stoi((*i).substr((*i).find_last_of("/")+1, std::string::npos));
+        }
     }
     return octets;
 }
@@ -270,8 +272,10 @@ unsigned int get_size_summary(std::vector<std::string>& data) {
 unsigned int get_file_size(std::string& filename, std::vector<std::string>& data) {
     unsigned int size = 0;
     for (auto i = data.begin(); i != data.end(); ++i) {
-        if (filename.compare((*i).substr(0, (*i).find("/"))) == 0) {
-            size = std::stoi((*i).substr((*i).find_last_of("/")+1, std::string::npos));
+        if ((*i).compare("") != 0) {
+            if (filename.compare((*i).substr(0, (*i).find("/"))) == 0) {
+                size = std::stoi((*i).substr((*i).find_last_of("/")+1, std::string::npos));
+            }
         }
     }
     return size;
@@ -281,8 +285,10 @@ unsigned int get_file_size(std::string& filename, std::vector<std::string>& data
 std::string get_file_id(std::string& filename, std::vector<std::string>& data) {
     std::string id;
     for (auto i = data.begin(); i != data.end(); ++i) {
-        if (filename.compare((*i).substr(0, (*i).find("/"))) == 0) {
-            id = (*i).substr((*i).find("/")+1, (*i).find_last_of("/"));
+        if ((*i).compare("") != 0) {
+            if (filename.compare((*i).substr(0, (*i).find("/"))) == 0) {
+                id = (*i).substr((*i).find("/")+1, (*i).find_last_of("/"));
+            }
         }
     }
     return id;
@@ -293,9 +299,21 @@ std::vector<std::string> get_files(std::vector<std::string>& data) {
     std::vector<std::string> files;
     std::string tmp;
     for (auto i = data.begin(); i != data.end(); ++i) {
-        files.push_back((*i).substr(0, (*i).find("/")));
+        if ((*i).compare("") != 0) {
+            files.push_back((*i).substr(0, (*i).find("/")));
+        }
     }
     return files;
+}
+
+unsigned int vector_size(std::vector<std::string>& data) {
+    unsigned int counter = 0;
+    for (auto i = data.begin(); i != data.end(); ++i) {
+        if ((*i).compare("") != 0) {
+            counter++;
+        }
+    }
+    return counter;
 }
 
 void remove_file(std::string& filename, std::vector<std::string>& data, Args* args) {
@@ -344,7 +362,6 @@ void remove_file(std::string& filename, std::vector<std::string>& data, Args* ar
     filepath = (args->path_maildir_cur.back() == '/') ? args->path_maildir_cur + filename : args->path_maildir_cur + "/" + filename;
     remove(filepath.c_str());
 }
-
 
 // Function get the realpath of every file (only file) in directory
 std::vector<std::string> get_file_paths_in_directory(std::string dirpath) {
@@ -753,7 +770,7 @@ void thread_main(int socket, Args* args) {
     std::mutex mutex;
     std::string CMD_ARGS;
     std::string GREETING_BANNER;
-    std::vector<std::string> maildir_cur_file_names;
+    std::vector<std::string> WORKING_VECTOR;
 
     // INITIALIZATION
     STATE = AUTHORIZATION;
@@ -888,6 +905,8 @@ void thread_main(int socket, Args* args) {
                                         }
 
                                         STATE = TRANSACTION;
+                                        move_new_to_curr(args);
+                                        WORKING_VECTOR = load_file_lines_to_vector(DATA_FILE_NAME);
 
                                     }
                                     else { // PASS wrongstr
@@ -933,6 +952,8 @@ void thread_main(int socket, Args* args) {
                                 }
 
                                 STATE = TRANSACTION;
+                                move_new_to_curr(args);
+                                WORKING_VECTOR = load_file_lines_to_vector(DATA_FILE_NAME);
 
                             #else // REMOVE THIS ########################################
 
@@ -946,6 +967,8 @@ void thread_main(int socket, Args* args) {
                                 }
 
                                 STATE = TRANSACTION;
+                                move_new_to_curr(args);
+                                WORKING_VECTOR = load_file_lines_to_vector(DATA_FILE_NAME);
 
                             #endif // ###################################################
                         }
@@ -959,8 +982,6 @@ void thread_main(int socket, Args* args) {
                 break;
             // ==========================================================
             case TRANSACTION:
-
-                move_new_to_curr(args);
 
                 switch(COMMAND){
                     // ==================================================
@@ -995,29 +1016,30 @@ void thread_main(int socket, Args* args) {
                     // ==================================================
                     case LIST:
                         if (CMD_ARGS.empty()) { // LIST
-                            /*
                             unsigned int count; 
                             unsigned int octets;
-                            std::vector<std::string> files;
 
-                            listing_files = cur_files;
-                            remove_deleted_files(listing_files);
-
-                            count  = listing_files.size();
-                            octets = get_cur_size(listing_files);
+                            count = vector_size(WORKING_VECTOR);
+                            octets = get_size_summary(WORKING_VECTOR);
 
                             msg = "+OK " + std::to_string(count) + " messages (" + std::to_string(octets) + " octets)\r\n";
                             thread_send(socket, msg);
 
-                            //for(unsigned int i = 0; i<)
-                            //msg = "";
-                            //thread_send(socket, msg);
-                            */
-                            msg = "LIST";
+                            unsigned int index = 0;
+                            for (auto i = WORKING_VECTOR.begin(); i != WORKING_VECTOR.end(); ++i) {
+                                index++;
+                                if ((*i).compare("") != 0) {
+                                    msg = index + " " + std::to_string(get_file_size(*i, WORKING_VECTOR)) + "\r\n";
+                                    thread_send(socket, msg);
+                                }
+                            }
+                            msg = ".\r\n";
                             thread_send(socket, msg);
                         }
                         else { // LIST str
-                            msg = "LIST str";
+                            unsigned int index = std::stoi(CMD_ARGS);
+                            std::string filename = WORKING_VECTOR[index];
+                            msg = "+OK " + std::to_string(index) + " " + std::to_string(get_file_size(filename, WORKING_VECTOR));
                             thread_send(socket, msg);
                         }
                         break;
