@@ -32,15 +32,21 @@
 
 using namespace std;
 
+// DEBUG
+#define PRINT_VEC(vector) for (auto i = vector.begin(); i != vector.end(); ++i) std::cout << *i << std::endl; std::cout << std::endl;
+#define PRINT(data) std::cout << data << std::endl << std::endl;
+#define ECHO() std::cout << std::endl;
+
+// CONSTANTS
 #define PORT_MAX 65535
 #define HOSTNAME_LENGTH 64
 #define LOG_FILE_NAME "log"
-#define DEL_FILE_NAME "del"
 #define DATA_FILE_NAME "data"
+#define DATA_FILE_DELIMITER "/"
 #define ID_LENGTH 20
-#define ID_CHARS "!\"#$%&'()*+,-." /* excluding SLASH */   "0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~"
+#define ID_CHARS "!\"#$%&'()*+,-." /* excluding SLASH */   "0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~" // SLASH is used many times as a delimiter
 
-
+// GLOBAL VARIABLES
 bool flag_exit = false;
 
 // enum for states
@@ -147,26 +153,6 @@ bool dir_exists(const std::string& path) {
     }
 }
 
-// Function return true/false on status of file deleted/non-deleted
-bool is_file_deleted(std::string filename) {
-    std::ifstream file(DEL_FILE_NAME);
-    std::string line;
-    while (std::getline(file, line)) {
-        if (filename.compare(line) == 0) {
-            return true;
-        }
-    }
-    return false;
-}
-
-// Function check if filename is in directory
-bool filename_is_in_dir(std::string filename, std::string directory) {
-    std::string data;
-    data = (directory.back() == '/') ? directory : directory + "/";
-    data.append(filename);
-    return (file_exists(data)) ? true : false;
-}
-
 // Function move file to specified directory
 bool move_file(std::string filepath, std::string dirpath) {
 
@@ -215,8 +201,11 @@ std::string file_size(std::string filename) {
 // Function load file content line by line as std::string to a std::vector
 std::vector<std::string> load_file_lines_to_vector(std::string file) {
 
-    std::ifstream logfile(file);
     std::vector<std::string> files;
+    
+    if (!file_exists(file)) return files;
+
+    std::ifstream logfile(file);
     std::string line;
 
     while (std::getline(logfile, line)) {
@@ -228,54 +217,11 @@ std::vector<std::string> load_file_lines_to_vector(std::string file) {
     return files;
 }
 
-// Reset
-void reset() {
-
-    if (!file_exists(LOG_FILE_NAME)) {
-        return;
+void remove_matches_from_vector(std::vector<std::string>& vector, std::vector<std::string>& data) {
+    if (vector.empty() || data.empty()) return;
+    for (auto i = data.begin(); i != data.end(); ++i) {
+        vector.erase(std::remove(vector.begin(), vector.end(), (*i).c_str()), vector.end());
     }
-
-    std::vector<std::string> files;
-    files = load_file_lines_to_vector(LOG_FILE_NAME);
-
-    std::string buff;
-    std::string path_cur;
-    std::string path_new;
-
-    buff = files.front();
-    buff = buff.substr(0, buff.find_last_of("/"));
-    buff = buff.substr(0, buff.find_last_of("/")+1);
-
-    path_cur = buff;
-    path_new = buff;
-
-    path_cur.append("cur");
-    path_new.append("new");
-
-    std::string filename;
-    std::string file_in_new;
-    std::string file_in_cur;
-
-    for (auto i = files.begin(); i != files.end(); ++i) {
-        file_in_new = *i;
-        filename = file_in_new.substr(file_in_new.find_last_of("/")+1, std::string::npos);
-        file_in_cur = path_cur + "/" + filename;
-        if (filename_is_in_dir(filename, path_cur)) {
-            move_file(file_in_cur, path_new);
-        }
-    }
-
-    remove(LOG_FILE_NAME);
-
-    if (file_exists(DEL_FILE_NAME)) {
-        remove(DEL_FILE_NAME);
-    }
-
-    if (file_exists(DATA_FILE_NAME)) {
-        remove(DATA_FILE_NAME);
-    }
-
-    return;
 }
 
 // Function loads username and password from authentication file
@@ -311,8 +257,65 @@ void load_auth_file(Args* args) { // TODO FIXIT
     fclose(fd);
 }
 
+// Function provide addition of filesizes which are saved in vector (vector = loaded DATA file)
+unsigned int get_size_summary(std::vector<std::string>& data) {
+    unsigned int octets = 0;
+    for (auto i = data.begin(); i != data.end(); ++i) {
+        octets += std::stoi((*i).substr((*i).find_last_of("/")+1, std::string::npos));
+    }
+    return octets;
+}
+
+// Function return file size from vector (vector = loaded DATA file)
+unsigned int get_file_size(std::string& filename, std::vector<std::string>& data) {
+    unsigned int size = 0;
+    for (auto i = data.begin(); i != data.end(); ++i) {
+        if (filename.compare((*i).substr(0, (*i).find("/"))) == 0) {
+            size = std::stoi((*i).substr((*i).find_last_of("/")+1, std::string::npos));
+        }
+    }
+    return size;
+}
+
+// Function return file id from vector (vector = loaded DATA file)
+std::string get_file_id(std::string& filename, std::vector<std::string>& data) {
+    std::string id;
+    for (auto i = data.begin(); i != data.end(); ++i) {
+        if (filename.compare((*i).substr(0, (*i).find("/"))) == 0) {
+            id = (*i).substr((*i).find("/")+1, (*i).find_last_of("/"));
+        }
+    }
+    return id;
+}
+
+// Function return file names from vector (vector = loaded DATA file)
+std::vector<std::string> get_files(std::vector<std::string>& data) {
+    std::vector<std::string> files;
+    std::string tmp;
+    for (auto i = data.begin(); i != data.end(); ++i) {
+        tmp = (*i).substr(0, (*i).find("/"));
+        if (!tmp.empty()) {
+            files.push_back(tmp);
+        }
+    }
+    return files;
+}
+
+void remove_file(std::string& filename, std::vector<std::string>& data, Args* args) {
+
+    //remove physically
+    std::string file_path;
+    filepath = (args->path_maildir_cur.back() == '/') ? args->path_maildir_cur + filename : args->path_maildir_cur + "/" + filename;
+    remove(filepath);
+    
+    //remove from DATA.file
+    //remove from LOG.file
+    //remove from vector (replace it with empty string)
+}
+
+
 // Function get the realpath of every file (only file) in directory
-std::vector<std::string> list_dir(std::string dirpath, bool FN_io_RP) { // FN_io_RP = FileName InsteadOf RealPath
+std::vector<std::string> get_file_paths_in_directory(std::string dirpath) {
 
     std::vector<std::string> files;
     std::string data;
@@ -326,13 +329,8 @@ std::vector<std::string> list_dir(std::string dirpath, bool FN_io_RP) { // FN_io
         data = (dirpath.back() == '/') ? dirpath : dirpath + "/";
         data.append(entry->d_name);
         if (file_exists(data)) {
-            if (FN_io_RP) {
-                files.push_back(entry->d_name);
-            }
-            else {
-                data = realpath(data.c_str(), NULL); // TODO FIXIT realpath may return NULL
-                files.push_back(data);
-            }
+            data = realpath(data.c_str(), NULL); // TODO FIXIT realpath may return NULL
+            files.push_back(data);
         }
     }
     closedir(dir);
@@ -340,34 +338,111 @@ std::vector<std::string> list_dir(std::string dirpath, bool FN_io_RP) { // FN_io
     return files;
 }
 
-// Function appends a one line (string) to a file
-void append_line_to_file(std::string data, std::string filepath) {
-    std::ofstream file;
-    file.open(filepath, std::fstream::out | std::fstream::app);
-    file << data << std::endl;
-    file.close();
-}
-
 // Function move content of maildir/new to maildir/curr
 void move_new_to_curr(Args* args) {
 
+    //##########################################
+    // ABSOLUTE PATHS OF FILES in maildir/NEW
+    //##########################################
+    std::vector<std::string> files;
+    files = get_file_paths_in_directory(args->path_maildir_new); // returns ABSOLUTE paths of files in directory
+
+    if (files.empty()) return; 
+
+
+
+
+    //##########################################
+    // CREATE DATA FILE
+    //##########################################
+    std::ofstream datafile;
+    datafile.open(DATA_FILE_NAME, std::fstream::out | std::fstream::app);
+
+    std::string f_name;
+    std::string f_id;
+    std::string f_size;
+
+    for (auto i = files.begin(); i != files.end(); ++i) {
+
+        f_name = (*i).substr((*i).find_last_of("/")+1, std::string::npos);
+        f_id   = id_generator();
+        f_size = file_size(*i);
+
+        datafile << f_name << DATA_FILE_DELIMITER << f_id << DATA_FILE_DELIMITER << f_size << std::endl;
+    }
+
+    datafile.close();
+
+
+
+
+    //##########################################
+    // CREATE LOG FILE
+    //##########################################
     std::ofstream logfile;
     logfile.open(LOG_FILE_NAME, std::fstream::out | std::fstream::app);
 
-    std::vector<std::string> files;
-    files = list_dir(args->path_maildir_new, false);
-    if (!files.empty()) {
-        for (auto i = files.begin(); i != files.end(); ++i) {
-            if (move_file(*i, args->path_maildir_cur)) {
-                logfile << *i << std::endl;
-            }
+    for (auto i = files.begin(); i != files.end(); ++i) {
+        if (move_file(*i, args->path_maildir_cur)) {
+            logfile << *i << std::endl;
         }
     }
+
     logfile.close();
+
+
+
+
+    return;
+}
+
+// Reset
+void reset() {
+
+    if (file_exists(DATA_FILE_NAME)) {
+        remove(DATA_FILE_NAME);
+    }
+
+    if (file_exists(LOG_FILE_NAME)) {
+
+        std::vector<std::string> files;
+        files = load_file_lines_to_vector(LOG_FILE_NAME);
+
+        std::string buff;
+        std::string path_cur;
+        std::string path_new;
+
+        buff = files.front();
+        buff = buff.substr(0, buff.find_last_of("/"));
+        buff = buff.substr(0, buff.find_last_of("/")+1);
+
+        path_cur = buff;
+        path_new = buff;
+
+        path_cur.append("cur");
+        path_new.append("new");
+
+        std::string filename;
+        std::string file_in_new;
+        std::string file_in_cur;
+
+        for (auto i = files.begin(); i != files.end(); ++i) {
+            file_in_new = *i;
+            filename = file_in_new.substr(file_in_new.find_last_of("/")+1, std::string::npos);
+            file_in_cur = path_cur + "/" + filename;
+            if (file_exists(file_in_cur)) {
+                move_file(file_in_cur, path_new);
+            }
+        }
+
+        remove(LOG_FILE_NAME);
+    }
+
+    return;
 }
 
 // Function checks the structure of maildir
-void analyze_maildir(Args* args) {
+void check_maildir(Args* args) {
 
     args->path_maildir_new = args->path_maildir_cur = args->path_maildir_tmp = args->path_d;
 
@@ -477,7 +552,7 @@ void argpar(int* argc, char* argv[], Args* args) {
                 exit(1);
             }
             else {
-                analyze_maildir(args);
+                check_maildir(args);
             }
         }
 
@@ -486,33 +561,6 @@ void argpar(int* argc, char* argv[], Args* args) {
             reset();
         }
     }
-}
-
-// TODO FIXIT REMOVE THIS
-void print_status(State S, Command C) {
-
-    std::string state, command;
-
-    if (S == AUTHORIZATION) state = "AUTHORIZATION";
-    else if (S == TRANSACTION) state = "TRANSACTION";
-    else if (S == UPDATE) state = "UPDATE";
-    else state = "\033[1m\033[31mSTATE_ERROR\033[0m";
-
-    if (C == QUIT) command = "QUIT";
-    else if (C == STAT) command = "STAT";
-    else if (C == LIST) command = "LIST";
-    else if (C == RETR) command = "RETR";
-    else if (C == DELE) command = "DELE";
-    else if (C == NOOP) command = "NOOP";
-    else if (C == RSET) command = "RSET";
-    else if (C == UIDL) command = "UIDL";
-    else if (C == USER) command = "USER";
-    else if (C == PASS) command = "PASS";
-    else if (C == APOP) command = "APOP";
-    else command = "\033[1m\033[31mCOMMAND_ERROR\033[0m";
-
-    std::cout << "STATE = " << state << std::endl << "COMMAND = " << command << std::endl;
-    return;
 }
 
 // Converter STRING to ENUM
@@ -556,16 +604,6 @@ void load_cmd_and_args(Command* CMD, std::string& ARGS, std::string& str) {
 void thread_send(int socket, std::string& str) {
     // TODO FIXIT socket - what if socket is corrupted?
     send(socket, str.c_str(), str.length(), 0);
-    return;
-}
-
-unsigned int get_cur_size(std::vector<std::string>& files) {
-    files=files;
-    return 0;
-}
-
-void remove_deleted_files(std::vector<std::string>& files) {
-    files=files;
     return;
 }
 
@@ -683,7 +721,7 @@ void thread_main(int socket, Args* args) {
     std::mutex mutex;
     std::string CMD_ARGS;
     std::string GREETING_BANNER;
-    std::vector<std::string> cur_files;
+    std::vector<std::string> maildir_cur_file_names;
 
     // INITIALIZATION
     STATE = AUTHORIZATION;
@@ -726,9 +764,9 @@ void thread_main(int socket, Args* args) {
             fprintf(stderr, "recv() failed!\n");
             return;
         }
-
-
+ 
         /*
+        // TODO - we have to check this ?
         if (strlen(buff) < 2) continue; // 0-1 chars received
         else { // 2-N chars received
             if (strcmp("\r\n",buff) == 0) continue; // only CRLF received
@@ -743,19 +781,12 @@ void thread_main(int socket, Args* args) {
 
         if (strcmp("\r\n",buff) == 0) continue; // only CRLF received
 
-        // if (data.substr(data.length()-2) != "\r\n") // TODO REMOVE THIS OR FIXIT - core dump
-
-        // ADD BUFFER TO C++ STIRING
         data = buff;
         data = data.substr(0, data.size()-2); // remmove CRLF (last 2 characters)
 
         if (data.empty()) continue; // we dont have string including "COMMAND [ARGS]"
 
         load_cmd_and_args(&COMMAND, CMD_ARGS, data);
-
-        print_status(STATE,COMMAND); // TODO: remove this + function definition
-
-        cur_files = list_dir(args->path_maildir_cur, true);
 
         switch(STATE){
             // ==========================================================
@@ -932,10 +963,10 @@ void thread_main(int socket, Args* args) {
                     // ==================================================
                     case LIST:
                         if (CMD_ARGS.empty()) { // LIST
-
+                            /*
                             unsigned int count; 
                             unsigned int octets;
-                            std::vector<std::string> listing_files;
+                            std::vector<std::string> files;
 
                             listing_files = cur_files;
                             remove_deleted_files(listing_files);
@@ -945,11 +976,17 @@ void thread_main(int socket, Args* args) {
 
                             msg = "+OK " + std::to_string(count) + " messages (" + std::to_string(octets) + " octets)\r\n";
                             thread_send(socket, msg);
-                            msg = "TODO send listed files\r\n";
+
+                            //for(unsigned int i = 0; i<)
+                            //msg = "";
+                            //thread_send(socket, msg);
+                            */
+                            msg = "LIST";
                             thread_send(socket, msg);
                         }
                         else { // LIST str
-
+                            msg = "LIST str";
+                            thread_send(socket, msg);
                         }
                         break;
                     // ==================================================
