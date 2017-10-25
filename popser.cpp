@@ -293,24 +293,56 @@ std::vector<std::string> get_files(std::vector<std::string>& data) {
     std::vector<std::string> files;
     std::string tmp;
     for (auto i = data.begin(); i != data.end(); ++i) {
-        tmp = (*i).substr(0, (*i).find("/"));
-        if (!tmp.empty()) {
-            files.push_back(tmp);
-        }
+        files.push_back((*i).substr(0, (*i).find("/")));
     }
     return files;
 }
 
 void remove_file(std::string& filename, std::vector<std::string>& data, Args* args) {
 
-    //remove physically
-    std::string file_path;
-    filepath = (args->path_maildir_cur.back() == '/') ? args->path_maildir_cur + filename : args->path_maildir_cur + "/" + filename;
-    remove(filepath);
-    
-    //remove from DATA.file
-    //remove from LOG.file
+    std::string content_line_filename;
+    std::vector<std::string> vector;
+    std::vector<std::string> content;
+    std::ofstream output_file;
+
     //remove from vector (replace it with empty string)
+    for (auto i = data.begin(); i != data.end(); ++i) {
+        content_line_filename = (*i).substr(0, (*i).find("/"));
+        if (filename.compare(content_line_filename) != 0) {
+            *i = "";
+        }
+    }
+
+    //remove from file DATA_FILE_NAME
+    content = load_file_lines_to_vector(DATA_FILE_NAME);
+    for (auto i = content.begin(); i != content.end(); ++i) {
+        content_line_filename = (*i).substr(0, (*i).find("/"));
+        if (filename.compare(content_line_filename) != 0) {
+            vector.push_back(*i);
+        }
+    }
+    output_file.open(DATA_FILE_NAME);
+    for (auto i = vector.begin(); i != vector.end(); ++i) {
+        output_file << *i << endl;
+    }
+
+    //remove from file LOG_FILE_NAME
+    content = load_file_lines_to_vector(LOG_FILE_NAME);
+    for (auto i = content.begin(); i != content.end(); ++i) {
+        content_line_filename = (*i).substr((*i).find_last_of("/")+1, std::string::npos);
+        if (filename.compare(content_line_filename) != 0) {
+            vector.push_back(*i);
+        }
+    }
+    output_file.open(LOG_FILE_NAME);
+    for (auto i = vector.begin(); i != vector.end(); ++i) {
+        output_file << *i << endl;
+    }
+
+    //remove physically maildir/cur/filename
+    std::string filepath;
+    filepath = (args->path_maildir_cur.back() == '/') ? args->path_maildir_cur + filename : args->path_maildir_cur + "/" + filename;
+    remove(filepath.c_str());
 }
 
 
