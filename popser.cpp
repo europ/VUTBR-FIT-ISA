@@ -1050,6 +1050,10 @@ void thread_main(int socket, Args* args) {
                             thread_send(socket, msg);
                         }
                         else { // LIST str
+                            if (!is_number(CMD_ARGS.c_str())) {
+                                msg = "-ERR Command LIST in state TRANSACTION needs a mumerical argument (index)!\r\n"; // TODO
+                                thread_send(socket, msg);
+                            }
                             unsigned int index = std::stoi(CMD_ARGS);
                             unsigned int WV_size = WORKING_VECTOR.size();
                             if (index <= WV_size) {
