@@ -1019,6 +1019,50 @@ void thread_main(int socket, Args* args) {
                         break;
                     // ==================================================
                     case UIDL:
+                        if (CMD_ARGS.empty()) { // UIDL
+
+                            msg = "+OK\r\n";
+                            thread_send(socket, msg);
+
+                            unsigned int index = 0;
+                            std::string filename;
+                            // TODO if WORKING_VECTOR is empty
+                            for (auto i = WORKING_VECTOR.begin(); i != WORKING_VECTOR.end(); ++i) {
+                                index++;
+                                if ((*i).compare("") != 0) {
+                                    filename = (*i).substr(0, (*i).find("/"));
+                                    msg = std::to_string(index) + " " + get_file_id(filename, WORKING_VECTOR) + "\r\n";
+                                    thread_send(socket, msg);
+                                }
+                            }
+                            msg = ".\r\n"; // TODO if nothing sent
+                            thread_send(socket, msg);
+                        }
+                        else { // UIDL str
+                            if (!is_number(CMD_ARGS.c_str())) {
+                                msg = "-ERR Command UIDL in state TRANSACTION needs a mumerical argument (index)!\r\n"; // TODO
+                                thread_send(socket, msg);
+                            }
+                            unsigned int index = std::stoi(CMD_ARGS);
+                            unsigned int WV_size = WORKING_VECTOR.size();
+                            if (0 < index && index <= WV_size) {
+                                std::string filename = WORKING_VECTOR[index-1];
+                                if (filename.empty()) {
+                                    msg = "-ERR Message is already deleted!\r\n"; // TODO
+                                    thread_send(socket, msg);
+                                }
+                                else {
+                                    filename = filename.substr(0, filename.find("/"));
+                                    msg = "+OK " + std::to_string(index) + " " + get_file_id(filename, WORKING_VECTOR) + "\r\n";
+                                    thread_send(socket, msg);
+                                }
+                            }
+                            else {
+                                msg = "-ERR Out of range indexing in messages via \"UIDL <index>\"!\r\n"; // TODO
+                                thread_send(socket, msg);
+                            }
+
+                        }
                         break;
                     // ==================================================
                     case STAT:
@@ -1046,7 +1090,7 @@ void thread_main(int socket, Args* args) {
                                     thread_send(socket, msg);
                                 }
                             }
-                            msg = ".\r\n";
+                            msg = ".\r\n"; // TODO if nothing sent
                             thread_send(socket, msg);
                         }
                         else { // LIST str
@@ -1056,7 +1100,7 @@ void thread_main(int socket, Args* args) {
                             }
                             unsigned int index = std::stoi(CMD_ARGS);
                             unsigned int WV_size = WORKING_VECTOR.size();
-                            if (index <= WV_size) {
+                            if (0 < index && index <= WV_size) {
                                 std::string filename = WORKING_VECTOR[index-1];
                                 if (filename.empty()) {
                                     msg = "-ERR Message is already deleted!\r\n"; // TODO
