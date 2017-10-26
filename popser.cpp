@@ -1042,6 +1042,7 @@ void thread_main(int socket, Args* args) {
                             if (!is_number(CMD_ARGS.c_str())) {
                                 msg = "-ERR Command UIDL in state TRANSACTION needs a mumerical argument (index)!\r\n"; // TODO
                                 thread_send(socket, msg);
+                                break;
                             }
                             unsigned int index = std::stoi(CMD_ARGS);
                             unsigned int WV_size = WORKING_VECTOR.size();
@@ -1097,6 +1098,7 @@ void thread_main(int socket, Args* args) {
                             if (!is_number(CMD_ARGS.c_str())) {
                                 msg = "-ERR Command LIST in state TRANSACTION needs a mumerical argument (index)!\r\n"; // TODO
                                 thread_send(socket, msg);
+                                break;
                             }
                             unsigned int index = std::stoi(CMD_ARGS);
                             unsigned int WV_size = WORKING_VECTOR.size();
@@ -1128,6 +1130,7 @@ void thread_main(int socket, Args* args) {
                             if (!is_number(CMD_ARGS.c_str())) {
                                 msg = "-ERR Command DELE in state TRANSACTION needs a mumerical argument (index)!\r\n"; // TODO
                                 thread_send(socket, msg);
+                                break;
                             }
                             unsigned int index = std::stoi(CMD_ARGS);
                             unsigned int WV_size = WORKING_VECTOR.size();
