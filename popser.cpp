@@ -316,7 +316,14 @@ unsigned int vector_size(std::vector<std::string>& data) {
     return counter;
 }
 
-void remove_file(std::string& filename, std::vector<std::string>& data, Args* args) {
+void remove_file_from_cur(std::string filename, Args* args) {
+    //remove physically maildir/cur/filename
+    std::string filepath;
+    filepath = (args->path_maildir_cur.back() == '/') ? args->path_maildir_cur + filename : args->path_maildir_cur + "/" + filename;
+    remove(filepath.c_str());
+}
+
+void remove_file(std::string& filename, std::vector<std::string>& data) {
 
     std::string content_line_filename;
     std::vector<std::string> vector;
@@ -326,7 +333,7 @@ void remove_file(std::string& filename, std::vector<std::string>& data, Args* ar
     //remove from vector (replace it with empty string)
     for (auto i = data.begin(); i != data.end(); ++i) {
         content_line_filename = (*i).substr(0, (*i).find("/"));
-        if (filename.compare(content_line_filename) != 0) {
+        if (filename.compare(content_line_filename) == 0) {
             *i = "";
         }
     }
@@ -357,10 +364,6 @@ void remove_file(std::string& filename, std::vector<std::string>& data, Args* ar
         output_file << *i << endl;
     }
 
-    //remove physically maildir/cur/filename
-    std::string filepath;
-    filepath = (args->path_maildir_cur.back() == '/') ? args->path_maildir_cur + filename : args->path_maildir_cur + "/" + filename;
-    remove(filepath.c_str());
 }
 
 // Function get the realpath of every file (only file) in directory
@@ -771,6 +774,7 @@ void thread_main(int socket, Args* args) {
     std::string CMD_ARGS;
     std::string GREETING_BANNER;
     std::vector<std::string> WORKING_VECTOR;
+    std::vector<std::string> FILENAMES_TO_REMOVE;
 
     // INITIALIZATION
     STATE = AUTHORIZATION;
@@ -784,7 +788,12 @@ void thread_main(int socket, Args* args) {
     while(1) {
 
         if (STATE == UPDATE) {
-            // TODO
+            if (FILENAMES_TO_REMOVE.size() != 0) {
+                for (auto i = FILENAMES_TO_REMOVE.begin(); i != FILENAMES_TO_REMOVE.end(); ++i) {
+                    remove_file_from_cur(*i, args);
+                }
+            }
+            // TODO send message ?
             close(socket);
             mutex.unlock();
             return;
@@ -1028,6 +1037,7 @@ void thread_main(int socket, Args* args) {
 
                             unsigned int index = 0;
                             std::string filename;
+                            // TODO if WORKING_VECTOR is empty
                             for (auto i = WORKING_VECTOR.begin(); i != WORKING_VECTOR.end(); ++i) {
                                 index++;
                                 if ((*i).compare("") != 0) {
@@ -1043,12 +1053,13 @@ void thread_main(int socket, Args* args) {
                             unsigned int index = std::stoi(CMD_ARGS);
                             unsigned int WV_size = WORKING_VECTOR.size();
                             if (index <= WV_size) {
-                                std::string filename = WORKING_VECTOR[index];
-                                filename = filename.substr(0, filename.find("/"));
+                                std::string filename = WORKING_VECTOR[index-1];
                                 if (filename.empty()) {
                                     msg = "-ERR Message is already deleted!\r\n"; // TODO
+                                    thread_send(socket, msg);
                                 }
                                 else {
+                                    filename = filename.substr(0, filename.find("/"));
                                     msg = "+OK " + std::to_string(index) + " " + std::to_string(get_file_size(filename, WORKING_VECTOR)) + "\r\n";
                                     thread_send(socket, msg);
                                 }
@@ -1065,6 +1076,34 @@ void thread_main(int socket, Args* args) {
                         break;
                     // ==================================================
                     case DELE:
+                        if (!CMD_ARGS.empty()) { // DELE str
+                            if (!is_number(CMD_ARGS.c_str())) {
+                                msg = "-ERR Command DELE in state TRANSACTION needs a mumerical argument (index)!\r\n"; // TODO
+                                thread_send(socket, msg);
+                            }
+                            unsigned int index = std::stoi(CMD_ARGS);
+                            unsigned int WV_size = WORKING_VECTOR.size();
+                            if (index <= WV_size) {
+                                std::string filename = WORKING_VECTOR[index-1];
+                                if (filename.empty()) {
+                                    msg = "-ERR Message is already deleted!\r\n"; // TODO
+                                    thread_send(socket, msg);
+                                }
+                                else {
+                                    filename = filename.substr(0, filename.find("/"));
+                                    FILENAMES_TO_REMOVE.push_back(filename);
+                                    remove_file(filename, WORKING_VECTOR);
+                                }
+                            }
+                            else {
+                                msg = "-ERR Out of range indexing in messages via \"DELE <index>\"!\r\n"; // TODO
+                                thread_send(socket, msg);
+                            }
+                        }
+                        else {
+                            msg = "-ERR Command DELE in state TRANSACTION needs a argument!\r\n";
+                            thread_send(socket, msg);
+                        }
                         break;
                     // ==================================================
                     case RSET:
