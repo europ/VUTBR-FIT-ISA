@@ -1,8 +1,12 @@
 IPK-template/server
 IPK-template/client
-xtotha01.tar
+
 popser
 test
+
 maildir/
+
+xtotha01.tar
+
 log
-del
+data

@@ -800,6 +800,7 @@ void thread_main(int socket, Args* args) {
         memset(&buff,0,sizeof(buff));
         CMD_ARGS.clear();
         data.clear();
+        msg.clear();
 
         // RECEIVE
         res = recv(socket, buff, 1024,0); // FIXIT TODO buffer size
@@ -1026,10 +1027,12 @@ void thread_main(int socket, Args* args) {
                             thread_send(socket, msg);
 
                             unsigned int index = 0;
+                            std::string filename;
                             for (auto i = WORKING_VECTOR.begin(); i != WORKING_VECTOR.end(); ++i) {
                                 index++;
                                 if ((*i).compare("") != 0) {
-                                    msg = index + " " + std::to_string(get_file_size(*i, WORKING_VECTOR)) + "\r\n";
+                                    filename = (*i).substr(0, (*i).find("/"));
+                                    msg = std::to_string(index) + " " + std::to_string(get_file_size(filename, WORKING_VECTOR)) + "\r\n";
                                     thread_send(socket, msg);
                                 }
                             }
@@ -1038,9 +1041,23 @@ void thread_main(int socket, Args* args) {
                         }
                         else { // LIST str
                             unsigned int index = std::stoi(CMD_ARGS);
-                            std::string filename = WORKING_VECTOR[index];
-                            msg = "+OK " + std::to_string(index) + " " + std::to_string(get_file_size(filename, WORKING_VECTOR));
-                            thread_send(socket, msg);
+                            unsigned int WV_size = WORKING_VECTOR.size();
+                            if (index <= WV_size) {
+                                std::string filename = WORKING_VECTOR[index];
+                                filename = filename.substr(0, filename.find("/"));
+                                if (filename.empty()) {
+                                    msg = "-ERR Message is already deleted!\r\n"; // TODO
+                                }
+                                else {
+                                    msg = "+OK " + std::to_string(index) + " " + std::to_string(get_file_size(filename, WORKING_VECTOR)) + "\r\n";
+                                    thread_send(socket, msg);
+                                }
+                            }
+                            else {
+                                msg = "-ERR Out of range indexing in messages via \"LIST <index>\"!\r\n"; // TODO
+                                thread_send(socket, msg);
+                            }
+
                         }
                         break;
                     // ==================================================
