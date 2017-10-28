@@ -887,7 +887,7 @@ void thread_main(int socket, Args* args) {
                             msg = "+OK Closing connection.\r\n";
                             thread_send(socket, msg);
                             close(socket);
-                            return;
+                            return; // kill thread
                         }
                         break;
                     // ==================================================
@@ -920,19 +920,23 @@ void thread_main(int socket, Args* args) {
                                             msg = "+OK Logged in.\r\n";
                                             thread_send(socket, msg);
                                             if (!mutex.try_lock()) {
-                                                msg = "-ERR Maildrop cannot be opened because of locked mutex!\r\n";
+                                                // RFC: If the maildrop cannot be opened for some reason, the POP3 server responds with a negative status indicator.
+                                                msg = "-ERR Maildrop is locked by someone else!\r\n";
                                                 thread_send(socket, msg);
+                                                // RFC: After returning a negative status indicator, the server may close the connection.
+                                                close(socket);
+                                                return; // kill thread
                                             }
                                             STATE = TRANSACTION;
                                             move_new_to_curr(args);
                                             WORKING_VECTOR = load_file_lines_to_vector(DATA_FILE_NAME);
                                         }
-                                        else { // PASS wrongstr
-                                            msg = "-ERR Invalid password!\r\n";
+                                        else { // Wrong password
+                                            msg = "-ERR Authentication failed!\r\n";
                                             thread_send(socket, msg);
                                         }
                                     }
-                                    else {
+                                    else { // Wrong username
                                         msg = "-ERR Authentication failed!\r\n";
                                         thread_send(socket, msg);
                                     }
@@ -942,7 +946,7 @@ void thread_main(int socket, Args* args) {
                                     thread_send(socket, msg);
                                 }
                             }
-                            else { // USERNAME was not
+                            else { // USERNAME missing
                                 msg = "-ERR No username given!\r\n";
                                 thread_send(socket, msg);
                             }
