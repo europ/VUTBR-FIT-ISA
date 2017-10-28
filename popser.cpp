@@ -105,8 +105,8 @@ void usage() {
         "\tLAUNCH:\n"
         "\tNecessary parameters: [-a authentication_file] [-p port_numer] [-d mail_directory]\n"
         "\tOptional  parameters: [-c] [-r]\n"
-        "\n"
-    ;
+        "\n";
+
     fprintf(stdout, "%s", message.c_str());
     exit(0);
 }
@@ -161,9 +161,9 @@ bool move_file(std::string filepath, std::string dirpath) {
     }
 
     std::string filename, newfilepath;
+
     filename = filepath.substr(filepath.find_last_of("/")+1, std::string::npos);
-    newfilepath = (dirpath.back() == '/') ? dirpath : dirpath + "/";
-    newfilepath.append(filename);
+    newfilepath = (dirpath.back() == '/') ? dirpath + filename : dirpath + "/" + filename;
 
     int retval = rename(filepath.c_str(), newfilepath.c_str());
     if (retval != 0) {
@@ -173,20 +173,14 @@ bool move_file(std::string filepath, std::string dirpath) {
     return true;
 }
 
-bool has_suffix(std::string& str, std::string suffix) {
-    return ((str.size() >= suffix.size()) && (str.compare(str.size() - suffix.size(), suffix.size(), suffix) == 0));
-}
-
 // Function generate a random server-determined string for message ID
 std::string id_generator() {
 
-    unsigned length = ID_LENGTH;
-    char alphanum[] = ID_CHARS;
     std::string str = "";
-
+    char alphanum[] = ID_CHARS;
     srand(std::clock()+time(NULL));
 
-    for (unsigned i = 0; i < length; ++i) {
+    for (unsigned int i = 0; i < ID_LENGTH; ++i) {
         str += alphanum[rand() % (sizeof(alphanum) - 1)];
     }
 
@@ -202,10 +196,10 @@ std::string file_size(std::string filename) {
     return std::to_string(size);
 }
 
+// Function return DATA-LINE specified by filename from DATA_FILE_NAME
 std::string get_filename_line_from_data(std::string filename) {
     std::ifstream data(DATA_FILE_NAME);
-    std::string line;
-    std::string line_filename;
+    std::string line, line_filename;
     while(std::getline(data, line)) {
         line_filename = line.substr(0, line.find("/"));
         if (filename.compare(line_filename) == 0) {
@@ -213,9 +207,10 @@ std::string get_filename_line_from_data(std::string filename) {
         }
     }
     data.close();
-    return ""; // filename not found in DATA_FILE_NAME
+    return ""; // filename not found in file DATA_FILE_NAME
 }
 
+// Function loads the whole file content into std::string
 std::string get_file_content(std::string filepath) {
     std::ifstream file(filepath);
     std::string str((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
@@ -227,7 +222,9 @@ std::vector<std::string> load_file_lines_to_vector(std::string file) {
 
     std::vector<std::string> files;
 
-    if (!file_exists(file)) return files;
+    if (!file_exists(file)) {
+        return files; // empty vector
+    }
 
     std::ifstream logfile(file);
     std::string line;
@@ -239,13 +236,6 @@ std::vector<std::string> load_file_lines_to_vector(std::string file) {
     logfile.close();
 
     return files;
-}
-
-void remove_matches_from_vector(std::vector<std::string>& vector, std::vector<std::string>& data) {
-    if (vector.empty() || data.empty()) return;
-    for (auto i = data.begin(); i != data.end(); ++i) {
-        vector.erase(std::remove(vector.begin(), vector.end(), (*i).c_str()), vector.end());
-    }
 }
 
 // Function loads username and password from authentication file

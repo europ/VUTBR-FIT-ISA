@@ -88,3 +88,10 @@ void remove_deleted_files(std::vector<std::string>& files) {
     remove_matches_from_vector(files, del_file_content);
     return;
 }
+
+void remove_matches_from_vector(std::vector<std::string>& vector, std::vector<std::string>& data) {
+    if (vector.empty() || data.empty()) return;
+    for (auto i = data.begin(); i != data.end(); ++i) {
+        vector.erase(std::remove(vector.begin(), vector.end(), (*i).c_str()), vector.end());
+    }
+}
