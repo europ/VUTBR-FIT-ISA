@@ -1,6 +1,6 @@
 /**
  * @author     Adrián Tóth
- * @date       18.10.2017
+ * @date       28.10.2017
  * @brief      POP3 server
  */
 
@@ -311,7 +311,6 @@ std::string get_file_id(std::string& filename, std::vector<std::string>& data) {
 // Function return file names from vector (vector = loaded DATA file)
 std::vector<std::string> get_files(std::vector<std::string>& data) {
     std::vector<std::string> files;
-    std::string tmp;
     for (auto i = data.begin(); i != data.end(); ++i) {
         if ((*i).compare("") != 0) {
             files.push_back((*i).substr(0, (*i).find("/")));
@@ -320,6 +319,7 @@ std::vector<std::string> get_files(std::vector<std::string>& data) {
     return files;
 }
 
+// Function return vector size (count of messages which are not marked as deleted)
 unsigned int vector_size(std::vector<std::string>& data) {
     unsigned int counter = 0;
     for (auto i = data.begin(); i != data.end(); ++i) {
@@ -373,19 +373,22 @@ void remove_file(std::string& filename, Args* args) {
 std::vector<std::string> get_file_paths_in_directory(std::string dirpath) {
 
     std::vector<std::string> files;
-    std::string data;
 
     struct dirent *entry;
     DIR *dir = opendir(dirpath.c_str());
-    if (dir == NULL) {
+    if (dir == NULL) { // check directory
         return files;
     }
-    while ((entry = readdir(dir)) != NULL) {
-        data = (dirpath.back() == '/') ? dirpath : dirpath + "/";
-        data.append(entry->d_name);
-        if (file_exists(data)) {
-            data = realpath(data.c_str(), NULL); // TODO FIXIT realpath may return NULL
-            files.push_back(data);
+
+    std::string data;
+
+    while ((entry = readdir(dir)) != NULL) { // read files from directory
+        data = (dirpath.back() == '/') ? dirpath + entry->d_name : dirpath + "/" + entry->d_name; // create relative path
+        if (file_exists(data)) { // check file
+            data = realpath(data.c_str(), NULL); // create absolute path
+            if (!data.empty()) { // file is alright
+                files.push_back(data);
+            }
         }
     }
     closedir(dir);
@@ -397,13 +400,12 @@ std::vector<std::string> get_file_paths_in_directory(std::string dirpath) {
 void move_new_to_curr(Args* args) {
 
     //##########################################
-    // ABSOLUTE PATHS OF FILES in maildir/NEW
+    // ABSOLUTE PATHS OF ALL FILES in maildir/NEW
     //##########################################
     std::vector<std::string> files;
-    files = get_file_paths_in_directory(args->path_maildir_new); // returns ABSOLUTE paths of files in directory
+    files = get_file_paths_in_directory(args->path_maildir_new); // returns ABSOLUTE paths of every files in directory
 
-    if (files.empty()) return;
-
+    if (files.empty()) return; // 0 files in maildir/NEW
 
 
 
@@ -419,15 +421,15 @@ void move_new_to_curr(Args* args) {
 
     for (auto i = files.begin(); i != files.end(); ++i) {
 
-        f_name = (*i).substr((*i).find_last_of("/")+1, std::string::npos);
-        f_id   = id_generator();
-        f_size = file_size(*i);
+        f_name = (*i).substr((*i).find_last_of("/")+1, std::string::npos); // filename
+        f_id   = id_generator();                                           // file unique-id
+        f_size = file_size(*i);                                            // file size
 
+        // [filename][/][unique-id][/][size]["\n"]
         datafile << f_name << DATA_FILE_DELIMITER << f_id << DATA_FILE_DELIMITER << f_size << std::endl;
     }
 
     datafile.close();
-
 
 
 
@@ -439,12 +441,12 @@ void move_new_to_curr(Args* args) {
 
     for (auto i = files.begin(); i != files.end(); ++i) {
         if (move_file(*i, args->path_maildir_cur)) {
+            // [file absolute path][\n]
             logfile << *i << std::endl;
         }
     }
 
     logfile.close();
-
 
 
 
@@ -454,39 +456,37 @@ void move_new_to_curr(Args* args) {
 // Reset
 void reset() {
 
-    if (file_exists(DATA_FILE_NAME)) {
+    if (file_exists(DATA_FILE_NAME)) { // remove DATA_FILE_NAME
         remove(DATA_FILE_NAME);
     }
 
-    if (file_exists(LOG_FILE_NAME)) {
+    if (file_exists(LOG_FILE_NAME)) { // remove LOG_FILE_NAME
 
         std::vector<std::string> files;
-        files = load_file_lines_to_vector(LOG_FILE_NAME);
+        files = load_file_lines_to_vector(LOG_FILE_NAME); // load LOG_FILE_NAME
 
         std::string buff;
         std::string path_cur;
         std::string path_new;
 
+        // calculation of maildir path
         buff = files.front();
         buff = buff.substr(0, buff.find_last_of("/"));
         buff = buff.substr(0, buff.find_last_of("/")+1);
 
-        path_cur = buff;
-        path_new = buff;
-
-        path_cur.append("cur");
-        path_new.append("new");
+        path_cur = buff + "cur"; // maildir/cur path
+        path_new = buff + "new"; // maildir/new path
 
         std::string filename;
         std::string file_in_new;
         std::string file_in_cur;
 
         for (auto i = files.begin(); i != files.end(); ++i) {
-            file_in_new = *i;
-            filename = file_in_new.substr(file_in_new.find_last_of("/")+1, std::string::npos);
-            file_in_cur = path_cur + "/" + filename;
-            if (file_exists(file_in_cur)) {
-                move_file(file_in_cur, path_new);
+            file_in_new = *i; // absolute path of file in NEW
+            filename = file_in_new.substr(file_in_new.find_last_of("/")+1, std::string::npos); // filename
+            file_in_cur = path_cur + "/" + filename; // absolute path of file in CUR
+            if (file_exists(file_in_cur)) { // file exists in CUR
+                move_file(file_in_cur, path_new); // move file from CUR to NEW
             }
         }
 
@@ -499,19 +499,20 @@ void reset() {
 // Function checks the structure of maildir
 void check_maildir(Args* args) {
 
-    args->path_maildir_new = args->path_maildir_cur = args->path_maildir_tmp = args->path_d;
+    args->path_maildir_new = args->path_maildir_cur = args->path_maildir_tmp = args->path_d; // assign path of maildir
 
-    if (args->path_d.back() == '/') {
+    if (args->path_d.back() == '/') { // maildir ends with SLASH
         args->path_maildir_new.append("new");
         args->path_maildir_cur.append("cur");
         args->path_maildir_tmp.append("tmp");
     }
-    else {
+    else { // maildir does not end with SLASH
         args->path_maildir_new.append("/new");
         args->path_maildir_cur.append("/cur");
         args->path_maildir_tmp.append("/tmp");
     }
 
+    // NEW, CUR, TMP exists in maildir
     if (!dir_exists(args->path_maildir_new) || !dir_exists(args->path_maildir_cur) || !dir_exists(args->path_maildir_tmp)) {
         fprintf(stderr, "Wrong folder structure of maildir!\n");
         exit(1);
@@ -624,7 +625,7 @@ Command get_command(std::string& str) {
     if (str.empty()) return COMMAND_ERROR;
 
     std::string cmd = str;
-    std::transform(cmd.begin(), cmd.end(), cmd.begin(), ::tolower);
+    std::transform(cmd.begin(), cmd.end(), cmd.begin(), ::tolower); // TO LOWERCASE
 
     if (cmd.compare("quit") == 0) return QUIT;
     else if (cmd.compare("stat") == 0) return STAT;
@@ -643,15 +644,15 @@ Command get_command(std::string& str) {
 // Parser for string which is in format "COMMAND + ' ' + ARGUMENTS"
 void load_cmd_and_args(Command* CMD, std::string& ARGS, std::string& str) {
     std::string cmd;
-    std::size_t pos = str.find(" ");
-    if (pos == std::string::npos) {
+    std::size_t pos = str.find(" "); // get FIRST space position
+    if (pos == std::string::npos) { // no space in string => 1 command
         cmd = str;
     }
-    else {
-        cmd = str.substr(0, pos);
-        ARGS = str.substr(pos+1, str.length());
+    else { // 1 space in string => 1 command & 1 argument
+        cmd = str.substr(0, pos); // commnad
+        ARGS = str.substr(pos+1, str.length()); // argument
     }
-    *CMD = get_command(cmd);
+    *CMD = get_command(cmd); // enum of the command
     return;
 }
 
@@ -667,23 +668,18 @@ std::string get_greeting_banner() {
 
     std::string str;
 
-    pid_t  h_pid  = getpid();
-    time_t h_time = time(NULL);
+    pid_t  h_pid  = getpid();   // PID
+    time_t h_time = time(NULL); // TIME
 
     char h_hostname[HOSTNAME_LENGTH];
-    int retval = gethostname(h_hostname, HOSTNAME_LENGTH);
+    int retval = gethostname(h_hostname, HOSTNAME_LENGTH); // HOSTNAME
     if(retval != 0) {
-        fprintf(stderr, "gethostname() failed!\n");
+        fprintf(stderr, "gethostname() failed!\n"); // TODO FIXIT nic nepisat na stderr
         return NULL;
     }
 
-    str.append("<");
-    str.append(std::to_string(h_pid));
-    str.append(".");
-    str.append(std::to_string(h_time));
-    str.append("@");
-    str.append(h_hostname);
-    str.append(">");
+    // [<][PID][.][TIME][@][HOSTNAME][>]
+    str = "<" + std::to_string(h_pid) + "." + std::to_string(h_time) + "@" + h_hostname + ">";
 
     return str;
 }
@@ -696,23 +692,24 @@ std::string get_md5_hash(std::string& greeting_banner, std::string& password) {
     std::string hash; // digest
     std::string input;
 
-    input.append(greeting_banner);
-    input.append(password);
+    // [<][PID][.][TIME][@][HOSTNAME][>][password]
+    input = greeting_banner + password;
 
     unsigned char result[32];
-    MD5((const unsigned char*)input.c_str(), input.length(), result);
+    MD5((const unsigned char*)input.c_str(), input.length(), result); // create MD5
 
+    // create a STD::STRING from MD5 hash
     char buffer[32];
     for (int i=0;i<16;i++){
         sprintf(buffer, "%02x", result[i]);
         hash.append(buffer);
     }
 
-    return hash;
+    return hash; // digest
 }
 
 // Function provide username and md5 hash validation
-int apop_parser(int socket, Args* args, std::string& str, std::string& greeting_banner) {
+int apop_parser(int socket, Args* args, std::string& str, std::string& greeting_banner) { // TODO comment
 
     std::string username;
     std::string digest;
