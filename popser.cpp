@@ -184,7 +184,7 @@ std::string id_generator() {
     char alphanum[] = ID_CHARS;
     std::string str = "";
 
-    srand(std::clock());
+    srand(std::clock()+time(NULL));
 
     for (unsigned i = 0; i < length; ++i) {
         str += alphanum[rand() % (sizeof(alphanum) - 1)];
