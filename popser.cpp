@@ -1161,17 +1161,7 @@ void thread_main(int socket, Args* args) {
 
                                     std::string filepath = (args->path_maildir_cur.back() == '/') ? args->path_maildir_cur + filename :args->path_maildir_cur + "/" + filename;
                                     msg = get_file_content(filepath);
-
-                                    if (msg.empty()) { // EMPTY FILE
-                                        msg += ".\r\n"; // TODO FIXIT DANGER !!! WHAT TO DO ?
-                                    }
-                                    else if (has_suffix(msg, "\r\n")) { // FILE ENDS WITH "\r\n"
-                                        msg += ".\r\n";
-                                    }
-                                    else { // FILE DOES NOT END "\r\n"
-                                        msg += "\r\n.\r\n";
-                                    }
-
+                                    msg += ".\r\n";
                                     thread_send(socket, msg);
                                 }
                             }
@@ -1179,7 +1169,6 @@ void thread_main(int socket, Args* args) {
                                 msg = "-ERR Out of range indexing in messages via \"RETR <index>\"!\r\n";
                                 thread_send(socket, msg);
                             }
-
                         }
                         else { // RETR
                             msg = "-ERR Command RETR in TRANSACTION state needs a argument!\r\n";
