@@ -357,7 +357,7 @@ void remove_file(std::string& filename, Args* args) {
     }
     output_file.open(DATA_FILE_NAME);
     for (auto i = vector.begin(); i != vector.end(); ++i) {
-        output_file << *i << endl;
+        output_file << *i << std::endl;
     }
 
     //remove from file LOG_FILE_NAME
@@ -370,7 +370,7 @@ void remove_file(std::string& filename, Args* args) {
     }
     output_file.open(LOG_FILE_NAME);
     for (auto i = vector.begin(); i != vector.end(); ++i) {
-        output_file << *i << endl;
+        output_file << *i << std::endl;
     }
 
     //remove physically maildir/cur/filename
@@ -1080,6 +1080,14 @@ void thread_main(int socket, Args* args) {
                         break;
                     // ==================================================
                     case STAT:
+                        if (CMD_ARGS.empty()) {
+                            msg = "+OK " + std::to_string(vector_size(WORKING_VECTOR)) + " " + std::to_string(get_size_summary(WORKING_VECTOR)) + "\r\n";
+                            thread_send(socket, msg);
+                        }
+                        else {
+                            msg = "-ERR Command STAT in TRANSACTION state does not support any arguments!\r\n";
+                            thread_send(socket, msg);
+                        }
                         break;
                     // ==================================================
                     case LIST:
