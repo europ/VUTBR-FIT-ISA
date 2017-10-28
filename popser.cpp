@@ -173,6 +173,10 @@ bool move_file(std::string filepath, std::string dirpath) {
     return true;
 }
 
+bool has_suffix(std::string& str, std::string suffix) {
+    return ((str.size() >= suffix.size()) && (str.compare(str.size() - suffix.size(), suffix.size(), suffix) == 0));
+}
+
 // Function generate a random server-determined string for message ID
 std::string id_generator() {
 
@@ -210,6 +214,12 @@ std::string get_filename_line_from_data(std::string filename) {
     }
     data.close();
     return ""; // filename not found in DATA_FILE_NAME
+}
+
+std::string get_file_content(std::string filepath) {
+    std::ifstream file(filepath);
+    std::string str((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
+    return str;
 }
 
 // Function load file content line by line as std::string to a std::vector
@@ -367,7 +377,6 @@ void remove_file(std::string& filename, Args* args) {
     std::string filepath;
     filepath = (args->path_maildir_cur.back() == '/') ? args->path_maildir_cur + filename : args->path_maildir_cur + "/" + filename;
     remove(filepath.c_str());
-
 }
 
 // Function get the realpath of every file (only file) in directory
@@ -1100,7 +1109,7 @@ void thread_main(int socket, Args* args) {
                         }
                         else { // LIST str
                             if (!is_number(CMD_ARGS.c_str())) {
-                                msg = "-ERR Command LIST in state TRANSACTION needs a mumerical argument (index)!\r\n"; // TODO
+                                msg = "-ERR Command LIST in state TRANSACTION needs a numerical argument (index)!\r\n"; // TODO
                                 thread_send(socket, msg);
                                 break;
                             }
@@ -1127,6 +1136,55 @@ void thread_main(int socket, Args* args) {
                         break;
                     // ==================================================
                     case RETR:
+                        if (!CMD_ARGS.empty()) { // RETR str
+
+                            if (!is_number(CMD_ARGS.c_str())) {
+                                msg = "-ERR Command RETR in state TRANSACTION needs a numerical argument (index)!\r\n"; // TODO
+                                thread_send(socket, msg);
+                                break;
+                            }
+
+                            unsigned int index = std::stoi(CMD_ARGS);
+                            unsigned int WV_size = WORKING_VECTOR.size();
+
+                            if (0 < index && index <= WV_size) {
+                                std::string filename = WORKING_VECTOR[index-1];
+                                if (filename.empty()) {
+                                    msg = "-ERR Message is already deleted!\r\n"; // TODO
+                                    thread_send(socket, msg);
+                                }
+                                else {
+                                    filename = filename.substr(0, filename.find("/"));
+
+                                    msg = "+OK " + std::to_string(get_file_size(filename, WORKING_VECTOR)) + " octets\r\n";
+                                    thread_send(socket, msg);
+
+                                    std::string filepath = (args->path_maildir_cur.back() == '/') ? args->path_maildir_cur + filename :args->path_maildir_cur + "/" + filename;
+                                    msg = get_file_content(filepath);
+
+                                    if (msg.empty()) { // EMPTY FILE
+                                        msg += ".\r\n"; // TODO FIXIT DANGER !!! WHAT TO DO ?
+                                    }
+                                    else if (has_suffix(msg, "\r\n")) { // FILE ENDS WITH "\r\n"
+                                        msg += ".\r\n";
+                                    }
+                                    else { // FILE DOES NOT END "\r\n"
+                                        msg += "\r\n.\r\n";
+                                    }
+
+                                    thread_send(socket, msg);
+                                }
+                            }
+                            else {
+                                msg = "-ERR Out of range indexing in messages via \"RETR <index>\"!\r\n";
+                                thread_send(socket, msg);
+                            }
+
+                        }
+                        else { // RETR
+                            msg = "-ERR Command RETR in TRANSACTION state needs a argument!\r\n";
+                            thread_send(socket, msg);
+                        }
                         break;
                     // ==================================================
                     case DELE:
