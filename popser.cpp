@@ -779,6 +779,7 @@ void thread_main(int socket, Args* args) {
     int retval;
     char buff[1024];
     bool flag_USER;
+    bool flag_WRONGUSER;
     State STATE;
     Command COMMAND;
     std::string msg;
@@ -793,6 +794,7 @@ void thread_main(int socket, Args* args) {
     STATE = AUTHORIZATION;
     GREETING_BANNER = get_greeting_banner();
     flag_USER = false;
+    flag_WRONGUSER = false;
 
     // sending GREETING BANNER
     msg = "+OK POP3 server ready " + GREETING_BANNER + "\r\n";
@@ -892,15 +894,10 @@ void thread_main(int socket, Args* args) {
                     case USER:
                         if (args->c) { // USER command is supported
                             if (!CMD_ARGS.empty()) { // USER str
-                                if (args->username.compare(CMD_ARGS) == 0 ) { // USER USERNAME
-                                    flag_USER = true;
-                                    msg = "+OK Userame is valid.\r\n";
-                                    thread_send(socket, msg);
-                                }
-                                else { // USER wrongstr
-                                    msg = "-ERR Invalid username!\r\n";
-                                    thread_send(socket, msg);
-                                }
+                                flag_USER = true;
+                                flag_WRONGUSER = (args->username.compare(CMD_ARGS) == 0) ? false : true;
+                                msg = "+OK Username received.\r\n";
+                                thread_send(socket, msg);
                             }
                             else { // USER
                                 msg = "-ERR Command USER in AUTHORIZATION state has no argument!\r\n";
@@ -915,25 +912,28 @@ void thread_main(int socket, Args* args) {
                     // ==================================================
                     case PASS:
                         if (args->c) { // PASS command is supported
-                            if (flag_USER) { // USERNAME was
+                            if (flag_USER) { // USERNAME received
+                                flag_USER = false;
                                 if (!CMD_ARGS.empty()) { // PASS str
-                                    if (args->password.compare(CMD_ARGS) == 0 ) { // PASS PASSWORD
-
-                                        msg = "+OK Password is valid. Authorized.\r\n";
-                                        thread_send(socket, msg);
-
-                                        if (!mutex.try_lock()) {
-                                            msg = "-ERR Maildrop cannot be opened because of locked mutex!\r\n";
+                                    if (!flag_WRONGUSER) {
+                                        if (args->password.compare(CMD_ARGS) == 0 ) { // PASS PASSWORD
+                                            msg = "+OK Logged in.\r\n";
+                                            thread_send(socket, msg);
+                                            if (!mutex.try_lock()) {
+                                                msg = "-ERR Maildrop cannot be opened because of locked mutex!\r\n";
+                                                thread_send(socket, msg);
+                                            }
+                                            STATE = TRANSACTION;
+                                            move_new_to_curr(args);
+                                            WORKING_VECTOR = load_file_lines_to_vector(DATA_FILE_NAME);
+                                        }
+                                        else { // PASS wrongstr
+                                            msg = "-ERR Invalid password!\r\n";
                                             thread_send(socket, msg);
                                         }
-
-                                        STATE = TRANSACTION;
-                                        move_new_to_curr(args);
-                                        WORKING_VECTOR = load_file_lines_to_vector(DATA_FILE_NAME);
-
                                     }
-                                    else { // PASS wrongstr
-                                        msg = "-ERR Invalid password!\r\n";
+                                    else {
+                                        msg = "-ERR Authentication failed!\r\n";
                                         thread_send(socket, msg);
                                     }
                                 }
@@ -943,7 +943,7 @@ void thread_main(int socket, Args* args) {
                                 }
                             }
                             else { // USERNAME was not
-                                msg = "-ERR Missing command USER in AUTHORIZATION before PASS!\r\n";
+                                msg = "-ERR No username given!\r\n";
                                 thread_send(socket, msg);
                             }
                         }
