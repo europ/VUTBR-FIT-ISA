@@ -198,11 +198,25 @@ std::string file_size(std::string filename) {
     return std::to_string(size);
 }
 
+std::string get_filename_line_from_data(std::string filename) {
+    std::ifstream data(DATA_FILE_NAME);
+    std::string line;
+    std::string line_filename;
+    while(std::getline(data, line)) {
+        line_filename = line.substr(0, line.find("/"));
+        if (filename.compare(line_filename) == 0) {
+            return line;
+        }
+    }
+    data.close();
+    return ""; // filename not found in DATA_FILE_NAME
+}
+
 // Function load file content line by line as std::string to a std::vector
 std::vector<std::string> load_file_lines_to_vector(std::string file) {
 
     std::vector<std::string> files;
-    
+
     if (!file_exists(file)) return files;
 
     std::ifstream logfile(file);
@@ -316,27 +330,12 @@ unsigned int vector_size(std::vector<std::string>& data) {
     return counter;
 }
 
-void remove_file_from_cur(std::string filename, Args* args) {
-    //remove physically maildir/cur/filename
-    std::string filepath;
-    filepath = (args->path_maildir_cur.back() == '/') ? args->path_maildir_cur + filename : args->path_maildir_cur + "/" + filename;
-    remove(filepath.c_str());
-}
-
-void remove_file(std::string& filename, std::vector<std::string>& data) {
+void remove_file(std::string& filename, Args* args) {
 
     std::string content_line_filename;
     std::vector<std::string> vector;
     std::vector<std::string> content;
     std::ofstream output_file;
-
-    //remove from vector (replace it with empty string)
-    for (auto i = data.begin(); i != data.end(); ++i) {
-        content_line_filename = (*i).substr(0, (*i).find("/"));
-        if (filename.compare(content_line_filename) == 0) {
-            *i = "";
-        }
-    }
 
     //remove from file DATA_FILE_NAME
     content = load_file_lines_to_vector(DATA_FILE_NAME);
@@ -363,6 +362,11 @@ void remove_file(std::string& filename, std::vector<std::string>& data) {
     for (auto i = vector.begin(); i != vector.end(); ++i) {
         output_file << *i << endl;
     }
+
+    //remove physically maildir/cur/filename
+    std::string filepath;
+    filepath = (args->path_maildir_cur.back() == '/') ? args->path_maildir_cur + filename : args->path_maildir_cur + "/" + filename;
+    remove(filepath.c_str());
 
 }
 
@@ -399,7 +403,7 @@ void move_new_to_curr(Args* args) {
     std::vector<std::string> files;
     files = get_file_paths_in_directory(args->path_maildir_new); // returns ABSOLUTE paths of files in directory
 
-    if (files.empty()) return; 
+    if (files.empty()) return;
 
 
 
@@ -790,7 +794,7 @@ void thread_main(int socket, Args* args) {
         if (STATE == UPDATE) {
             if (FILENAMES_TO_REMOVE.size() != 0) {
                 for (auto i = FILENAMES_TO_REMOVE.begin(); i != FILENAMES_TO_REMOVE.end(); ++i) {
-                    remove_file_from_cur(*i, args);
+                    remove_file(*i, args);
                 }
             }
             // TODO send message ?
@@ -823,7 +827,7 @@ void thread_main(int socket, Args* args) {
             fprintf(stderr, "recv() failed!\n");
             return;
         }
- 
+
         /*
         // TODO - we have to check this ?
         if (strlen(buff) < 2) continue; // 0-1 chars received
@@ -1071,7 +1075,7 @@ void thread_main(int socket, Args* args) {
                     // ==================================================
                     case LIST:
                         if (CMD_ARGS.empty()) { // LIST
-                            unsigned int count; 
+                            unsigned int count;
                             unsigned int octets;
 
                             count = vector_size(WORKING_VECTOR);
@@ -1142,8 +1146,18 @@ void thread_main(int socket, Args* args) {
                                 }
                                 else {
                                     filename = filename.substr(0, filename.find("/"));
+
+                                    // add filename to FILENAMES_TO_REMOVE (used in STATE==UPDATE)
                                     FILENAMES_TO_REMOVE.push_back(filename);
-                                    remove_file(filename, WORKING_VECTOR);
+
+                                    // remove filename from WORKING_VECTOR (replace it with empty string)
+                                    std::string vector_filename;
+                                    for (auto i = WORKING_VECTOR.begin(); i != WORKING_VECTOR.end(); ++i) {
+                                        vector_filename = (*i).substr(0, (*i).find("/"));
+                                        if (filename.compare(vector_filename) == 0) {
+                                            *i = "";
+                                        }
+                                    }
                                 }
                             }
                             else {
@@ -1158,6 +1172,24 @@ void thread_main(int socket, Args* args) {
                         break;
                     // ==================================================
                     case RSET:
+                        if (CMD_ARGS.empty()) { // RSET
+                            std::string rset_tmp;
+                            for (auto FTR_i = FILENAMES_TO_REMOVE.begin(); FTR_i != FILENAMES_TO_REMOVE.end(); ++FTR_i) {
+                                for (auto WV_i = WORKING_VECTOR.begin(); WV_i != WORKING_VECTOR.end(); ++WV_i) {
+                                    if ((*WV_i).empty()) {
+                                        rset_tmp = get_filename_line_from_data(*FTR_i);
+                                        *WV_i = rset_tmp;
+                                    }
+                                }
+                            }
+                            FILENAMES_TO_REMOVE.clear();
+                            msg = "+OK\r\n";
+                            thread_send(socket, msg);
+                        }
+                        else { // RSET str
+                            msg = "-ERR Command RSET in state TRANSACTION does not support any arguments!\r\n";
+                            thread_send(socket, msg);
+                        }
                         break;
                     // ==================================================
                     default:
