@@ -605,6 +605,7 @@ void argpar(int* argc, char* argv[], Args* args) {
 
         // check maildir directory existence
         if (args->d) {
+            // TODO check if param -d has string
             if (!dir_exists(args->path_d)) {
                 fprintf(stderr, "Wrong maildir direcotry!\n");
                 exit(1);
@@ -928,6 +929,7 @@ void thread_main(int socket, Args* args) {
                                                 close(socket);
                                                 return; // kill thread
                                             }
+                                            // TODO check maildir
                                             STATE = TRANSACTION;
                                             move_new_to_curr(args);
                                             WORKING_VECTOR = load_file_lines_to_vector(DATA_FILE_NAME);
@@ -984,6 +986,7 @@ void thread_main(int socket, Args* args) {
                                         return; // kill thread
                                     }
 
+                                    // TODO check maildir
                                     STATE = TRANSACTION;
                                     move_new_to_curr(args);
                                     WORKING_VECTOR = load_file_lines_to_vector(DATA_FILE_NAME);
@@ -1003,6 +1006,7 @@ void thread_main(int socket, Args* args) {
                                         return; // kill thread
                                     }
 
+                                    // TODO check maildir
                                     STATE = TRANSACTION;
                                     move_new_to_curr(args);
                                     WORKING_VECTOR = load_file_lines_to_vector(DATA_FILE_NAME);
