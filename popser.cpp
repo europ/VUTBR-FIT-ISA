@@ -945,54 +945,60 @@ void thread_main(int socket, Args* args) {
                         break;
                     // ==================================================
                     case APOP:
-                        if (CMD_ARGS.empty()) { // APOP
-                            msg = "-ERR Command APOP in AUTHORIZATION state has no arguments!\r\n";
-                            thread_send(socket, msg);
+                        if (!args->c) { // APOP command is supported
+                            if (CMD_ARGS.empty()) { // APOP
+                                msg = "-ERR Command APOP in AUTHORIZATION state has no arguments!\r\n";
+                                thread_send(socket, msg);
+                            }
+                            else { // APOP str
+
+                                #ifdef md5
+
+                                    retval = apop_parser(socket, args, CMD_ARGS, GREETING_BANNER);
+                                    if (retval == 1) {
+                                        break;
+                                    }
+                                    msg = "+OK Logged in.\r\n";
+                                    thread_send(socket, msg);
+
+                                    if (!mutex_maildir.try_lock()) {
+                                        // RFC: If the maildrop cannot be opened for some reason, the POP3 server responds with a negative status indicator.
+                                        msg = "-ERR Maildrop is locked by someone else!\r\n";
+                                        thread_send(socket, msg);
+                                        // RFC: After returning a negative status indicator, the server may close the connection.
+                                        close(socket);
+                                        return; // kill thread
+                                    }
+
+                                    STATE = TRANSACTION;
+                                    move_new_to_curr(args);
+                                    WORKING_VECTOR = load_file_lines_to_vector(DATA_FILE_NAME);
+
+                                #else // REMOVE THIS ########################################
+
+                                    (void)retval; // -Wunused-variable
+                                    msg = "+OK Logged in.\r\n";
+                                    thread_send(socket, msg);
+
+                                    if (!mutex_maildir.try_lock()) {
+                                        // RFC: If the maildrop cannot be opened for some reason, the POP3 server responds with a negative status indicator.
+                                        msg = "-ERR Maildrop is locked by someone else!\r\n";
+                                        thread_send(socket, msg);
+                                        // RFC: After returning a negative status indicator, the server may close the connection.
+                                        close(socket);
+                                        return; // kill thread
+                                    }
+
+                                    STATE = TRANSACTION;
+                                    move_new_to_curr(args);
+                                    WORKING_VECTOR = load_file_lines_to_vector(DATA_FILE_NAME);
+
+                                #endif // ###################################################
+                            }
                         }
-                        else { // APOP str
-
-                            #ifdef md5
-
-                                retval = apop_parser(socket, args, CMD_ARGS, GREETING_BANNER);
-                                if (retval == 1) {
-                                    break;
-                                }
-                                msg = "+OK Logged in.\r\n";
-                                thread_send(socket, msg);
-
-                                if (!mutex_maildir.try_lock()) {
-                                    // RFC: If the maildrop cannot be opened for some reason, the POP3 server responds with a negative status indicator.
-                                    msg = "-ERR Maildrop is locked by someone else!\r\n";
-                                    thread_send(socket, msg);
-                                    // RFC: After returning a negative status indicator, the server may close the connection.
-                                    close(socket);
-                                    return; // kill thread
-                                }
-
-                                STATE = TRANSACTION;
-                                move_new_to_curr(args);
-                                WORKING_VECTOR = load_file_lines_to_vector(DATA_FILE_NAME);
-
-                            #else // REMOVE THIS ########################################
-
-                                (void)retval; // -Wunused-variable
-                                msg = "+OK Logged in.\r\n";
-                                thread_send(socket, msg);
-
-                                if (!mutex_maildir.try_lock()) {
-                                    // RFC: If the maildrop cannot be opened for some reason, the POP3 server responds with a negative status indicator.
-                                    msg = "-ERR Maildrop is locked by someone else!\r\n";
-                                    thread_send(socket, msg);
-                                    // RFC: After returning a negative status indicator, the server may close the connection.
-                                    close(socket);
-                                    return; // kill thread
-                                }
-
-                                STATE = TRANSACTION;
-                                move_new_to_curr(args);
-                                WORKING_VECTOR = load_file_lines_to_vector(DATA_FILE_NAME);
-
-                            #endif // ###################################################
+                        else { // APOP command is NOT supported
+                            msg = "-ERR Command APOP in AUTHORIZATION state is not supported!\r\n";
+                            thread_send(socket, msg);
                         }
                         break;
                     // ==================================================
