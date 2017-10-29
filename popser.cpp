@@ -40,6 +40,7 @@ using namespace std;
 // CONSTANTS
 #define PORT_MAX 65535
 #define HOSTNAME_LENGTH 64
+#define TIMEOUT_SECONDS 600 // 10 minutes
 #define LOG_FILE_NAME "log"
 #define DATA_FILE_NAME "data"
 #define DATA_FILE_DELIMITER "/"
@@ -768,6 +769,8 @@ void thread_main(int socket, Args* args) {
     char buff[1024];
     bool flag_USER;
     bool flag_WRONGUSER;
+    time_t time_from;
+    time_t time_curr;
     State STATE;
     Command COMMAND;
     std::string msg;
@@ -782,6 +785,7 @@ void thread_main(int socket, Args* args) {
     GREETING_BANNER = get_greeting_banner();
     flag_USER = false;
     flag_WRONGUSER = false;
+    time_from = time(NULL);
 
     // sending GREETING BANNER
     msg = "+OK POP3 server ready " + GREETING_BANNER + "\r\n";
@@ -801,27 +805,37 @@ void thread_main(int socket, Args* args) {
             return;
         }
 
-        if (flag_exit) {
-            // TODO send message to client about killing server
-            close(socket);
-            return;
-        }
-
         // RESET
         memset(&buff,0,sizeof(buff));
         CMD_ARGS.clear();
         data.clear();
         msg.clear();
+        time_curr = time(NULL);
+
 
         // RECEIVE
         res = recv(socket, buff, 1024,0); // FIXIT TODO buffer size
-        if (res == 0) { // client disconnected
-            break;
+        if (flag_exit) { // SIGINT
+            close(socket);
+            return;
         }
-        else if (errno == EAGAIN && res <= 0) { // recv would block EWOULDBLOCK
+        else if ( TIMEOUT_SECONDS <= (time_curr - time_from)) { // TIMEOUT
+            msg = "Timeout expired! You were AFK for "+std::to_string(time_curr - time_from)+" seconds.\r\n";
+            thread_send(socket,msg);
+            close(socket);
+            return;
+        }
+        else if (res > 0) { // DATA INCOME
+            time_from = time(NULL);
+        }
+        else if (res == 0) { // client disconnected
+            close(socket);
+            return; // kill thread
+        }
+        else if (errno == EAGAIN) { // recv would block EWOULDBLOCK
             continue;
         }
-        else if (res < 0) {
+        else {
             fprintf(stderr, "recv() failed!\n");
             return;
         }
