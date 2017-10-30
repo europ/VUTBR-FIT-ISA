@@ -1061,16 +1061,19 @@ void thread_main(int socket, Args* args) {
 
                             unsigned int index = 0;
                             std::string filename;
-                            // TODO if WORKING_VECTOR is empty
-                            for (auto i = WORKING_VECTOR.begin(); i != WORKING_VECTOR.end(); ++i) {
-                                index++;
-                                if ((*i).compare("") != 0) {
-                                    filename = (*i).substr(0, (*i).find("/"));
-                                    msg = std::to_string(index) + " " + get_file_id(filename, WORKING_VECTOR) + "\r\n";
-                                    thread_send(socket, msg);
+
+                            if (vector_size(WORKING_VECTOR) > 0) { // WORKING_VECTOR is empty
+                                for (auto i = WORKING_VECTOR.begin(); i != WORKING_VECTOR.end(); ++i) {
+                                    index++;
+                                    if ((*i).compare("") != 0) {
+                                        filename = (*i).substr(0, (*i).find("/"));
+                                        msg = std::to_string(index) + " " + get_file_id(filename, WORKING_VECTOR) + "\r\n";
+                                        thread_send(socket, msg);
+                                    }
                                 }
                             }
-                            msg = ".\r\n"; // TODO if nothing sent
+
+                            msg = ".\r\n";
                             thread_send(socket, msg);
                         }
                         else { // UIDL str
@@ -1125,16 +1128,19 @@ void thread_main(int socket, Args* args) {
 
                             unsigned int index = 0;
                             std::string filename;
-                            // TODO if WORKING_VECTOR is empty
-                            for (auto i = WORKING_VECTOR.begin(); i != WORKING_VECTOR.end(); ++i) {
-                                index++;
-                                if ((*i).compare("") != 0) {
-                                    filename = (*i).substr(0, (*i).find("/"));
-                                    msg = std::to_string(index) + " " + std::to_string(get_file_size(filename, WORKING_VECTOR)) + "\r\n";
-                                    thread_send(socket, msg);
+
+                            if (vector_size(WORKING_VECTOR) > 0) { // WORKING_VECTOR is empty
+                                for (auto i = WORKING_VECTOR.begin(); i != WORKING_VECTOR.end(); ++i) {
+                                    index++;
+                                    if ((*i).compare("") != 0) {
+                                        filename = (*i).substr(0, (*i).find("/"));
+                                        msg = std::to_string(index) + " " + std::to_string(get_file_size(filename, WORKING_VECTOR)) + "\r\n";
+                                        thread_send(socket, msg);
+                                    }
                                 }
                             }
-                            msg = ".\r\n"; // TODO if nothing sent
+
+                            msg = ".\r\n";
                             thread_send(socket, msg);
                         }
                         else { // LIST str
