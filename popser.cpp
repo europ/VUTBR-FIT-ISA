@@ -214,8 +214,28 @@ std::string get_filename_line_from_data(std::string filename) {
 
 // Function loads the whole file content into std::string
 std::string get_file_content(std::string filepath) {
+
     std::ifstream file(filepath);
-    std::string str((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
+
+    std::string str;
+    std::string line;
+
+    while (std::getline(file, line)) {
+
+        // add DOT before DOT => line starts with dot so add a dot before that dot
+        if (line.front() == '.')
+            line.insert(0, ".");
+
+        // every line must be terminated with CRLF
+        if (line.back() != '\r')
+            line.append("\r");
+
+        line.append("\n"); // getline() remove \n when it is reading from file
+
+        // line is handled and has \r\n at the end
+        str.append(line);
+    }
+
     return str;
 }
 
