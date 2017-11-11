@@ -789,8 +789,7 @@ int apop_parser(int socket, Args* args, std::string& str, std::string& greeting_
 
     if (pos == std::string::npos) {
         msg = "-ERR Command APOP in AUTHORIZATION state failed! Wrong arguments of APOP.\r\n";
-        thread_send(socket, msg);
-        return 1;
+        return (!thread_send(socket, msg)) ? 2 : 1;
     }
     else {
         username = str.substr(0, pos);
@@ -799,30 +798,26 @@ int apop_parser(int socket, Args* args, std::string& str, std::string& greeting_
 
     if (username.empty()) {
         msg = "-ERR Command APOP in AUTHORIZATION state failed! Wrong arguments of APOP. Username is missing.\r\n";
-        thread_send(socket, msg);
-        return 1;
+        return (!thread_send(socket, msg)) ? 2 : 1;
     }
 
     if (digest.empty()) {
         msg = "-ERR Command APOP in AUTHORIZATION state failed! Wrong arguments of APOP. Digest is missing.\r\n";
-        thread_send(socket, msg);
-        return 1;
+        return (!thread_send(socket, msg)) ? 2 : 1;
     }
 
     if (args->username.compare(username) != 0) {
         msg = "-ERR Authentication failed!\r\n"; // wrong username
-        thread_send(socket, msg);
-        return 1;
+        return (!thread_send(socket, msg)) ? 2 : 1;
     }
 
     std::string hash = get_md5_hash(greeting_banner, args->password);
     if (hash.compare(digest) != 0) {
         msg = "-ERR Authentication failed!\r\n"; // wrong digest
-        thread_send(socket, msg);
-        return 1;
+        return (!thread_send(socket, msg)) ? 2 : 1;
     }
 
-    return 0;
+    return 0; // success
 }
 
 // Passed function to thread which define behavior of thread
@@ -854,7 +849,7 @@ void thread_main(int socket, Args* args) {
 
     // sending GREETING BANNER
     msg = "+OK POP3 server ready " + GREETING_BANNER + "\r\n";
-    thread_send(socket, msg);
+    TSEND(socket, msg);
 
     while(1) {
 
@@ -886,7 +881,7 @@ void thread_main(int socket, Args* args) {
         }
         else if ( TIMEOUT_SECONDS <= (time_curr - time_from)) { // TIMEOUT
             msg = "Timeout expired! You were AFK for "+std::to_string(time_curr - time_from)+" seconds.\r\n";
-            thread_send(socket,msg);
+            TSEND(socket, msg);
             close(socket);
             return;
         }
@@ -937,11 +932,11 @@ void thread_main(int socket, Args* args) {
                     case QUIT:
                         if (!CMD_ARGS.empty()) { // QUIT str
                             msg = "-ERR Command QUIT in AUTHORIZATION state does not support any arguments!\r\n";
-                            thread_send(socket, msg);
+                            TSEND(socket, msg);
                         }
                         else { // QUIT
                             msg = "+OK Closing connection.\r\n";
-                            thread_send(socket, msg);
+                            TSEND(socket, msg);
                             close(socket);
                             return; // kill thread
                         }
@@ -953,16 +948,16 @@ void thread_main(int socket, Args* args) {
                                 flag_USER = true;
                                 flag_WRONGUSER = (args->username.compare(CMD_ARGS) == 0) ? false : true;
                                 msg = "+OK Username received.\r\n";
-                                thread_send(socket, msg);
+                                TSEND(socket, msg);
                             }
                             else { // USER
                                 msg = "-ERR Command USER in AUTHORIZATION state has no argument!\r\n";
-                                thread_send(socket, msg);
+                                TSEND(socket, msg);
                             }
                         }
                         else { // USER command is NOT supported
                             msg = "-ERR Command USER in AUTHORIZATION state is not supported!\r\n";
-                            thread_send(socket, msg);
+                            TSEND(socket, msg);
                         }
                         break;
                     // ==================================================
@@ -974,11 +969,11 @@ void thread_main(int socket, Args* args) {
                                     if (!flag_WRONGUSER) {
                                         if (args->password.compare(CMD_ARGS) == 0 ) { // PASS PASSWORD
                                             msg = "+OK Logged in.\r\n";
-                                            thread_send(socket, msg);
+                                            TSEND(socket, msg);
                                             if (!mutex_maildir.try_lock()) {
                                                 // RFC: If the maildrop cannot be opened for some reason, the POP3 server responds with a negative status indicator.
                                                 msg = "-ERR Maildrop is locked by someone else!\r\n";
-                                                thread_send(socket, msg);
+                                                TSEND(socket, msg);
                                                 // RFC: After returning a negative status indicator, the server may close the connection.
                                                 close(socket);
                                                 return; // kill thread
@@ -991,27 +986,27 @@ void thread_main(int socket, Args* args) {
                                         }
                                         else { // Wrong password
                                             msg = "-ERR Authentication failed!\r\n";
-                                            thread_send(socket, msg);
+                                            TSEND(socket, msg);
                                         }
                                     }
                                     else { // Wrong username
                                         msg = "-ERR Authentication failed!\r\n";
-                                        thread_send(socket, msg);
+                                        TSEND(socket, msg);
                                     }
                                 }
                                 else { // PASS
                                     msg = "-ERR Command PASS in AUTHORIZATION state has no argument!\r\n";
-                                    thread_send(socket, msg);
+                                    TSEND(socket, msg);
                                 }
                             }
                             else { // USERNAME missing
                                 msg = "-ERR No username given!\r\n";
-                                thread_send(socket, msg);
+                                TSEND(socket, msg);
                             }
                         }
                         else { // PASS command is NOT supported
                             msg = "-ERR Command PASS in AUTHORIZATION state is not supported!\r\n";
-                            thread_send(socket, msg);
+                            TSEND(socket, msg);
                         }
                         break;
                     // ==================================================
@@ -1019,7 +1014,7 @@ void thread_main(int socket, Args* args) {
                         if (!args->c) { // APOP command is supported
                             if (CMD_ARGS.empty()) { // APOP
                                 msg = "-ERR Command APOP in AUTHORIZATION state has no arguments!\r\n";
-                                thread_send(socket, msg);
+                                TSEND(socket, msg);
                             }
                             else { // APOP str
 
@@ -1027,13 +1022,16 @@ void thread_main(int socket, Args* args) {
                                 if (retval == 1) {
                                     break;
                                 }
+                                else if (retval == 2) {
+                                    return;
+                                }
                                 msg = "+OK Logged in.\r\n";
-                                thread_send(socket, msg);
+                                TSEND(socket, msg);
 
                                 if (!mutex_maildir.try_lock()) {
                                     // RFC: If the maildrop cannot be opened for some reason, the POP3 server responds with a negative status indicator.
                                     msg = "-ERR Maildrop is locked by someone else!\r\n";
-                                    thread_send(socket, msg);
+                                    TSEND(socket, msg);
                                     // RFC: After returning a negative status indicator, the server may close the connection.
                                     close(socket);
                                     return; // kill thread
@@ -1049,13 +1047,13 @@ void thread_main(int socket, Args* args) {
                         }
                         else { // APOP command is NOT supported
                             msg = "-ERR Command APOP in AUTHORIZATION state is not supported!\r\n";
-                            thread_send(socket, msg);
+                            TSEND(socket, msg);
                         }
                         break;
                     // ==================================================
                     default:
                         msg = "-ERR Wrong command in AUTHORIZATION state!\r\n";
-                        thread_send(socket, msg);
+                        TSEND(socket, msg);
                         break;
                 }
                 break;
@@ -1066,22 +1064,22 @@ void thread_main(int socket, Args* args) {
                     case NOOP:
                         if (!CMD_ARGS.empty()) { // NOOP str
                             msg = "-ERR Command NOOP in TRANSACTION state does not support any arguments!\r\n";
-                            thread_send(socket, msg);
+                            TSEND(socket, msg);
                         }
                         else { // NOOP
                             msg = "+OK\r\n";
-                            thread_send(socket, msg);
+                            TSEND(socket, msg);
                         }
                         break;
                     // ==================================================
                     case QUIT:
                         if (!CMD_ARGS.empty()) { // QUIT str
                             msg = "-ERR Command QUIT in TRANSACTION state does not support any arguments!\r\n";
-                            thread_send(socket, msg);
+                            TSEND(socket, msg);
                         }
                         else { // QUIT
                             msg = "+OK POP3 server signing off.\r\n";
-                            thread_send(socket, msg);
+                            TSEND(socket, msg);
                             STATE = UPDATE;
                         }
                         break;
@@ -1090,7 +1088,7 @@ void thread_main(int socket, Args* args) {
                         if (CMD_ARGS.empty()) { // UIDL
 
                             msg = "+OK\r\n";
-                            thread_send(socket, msg);
+                            TSEND(socket, msg);
 
                             unsigned int index = 0;
                             std::string filename;
@@ -1101,18 +1099,18 @@ void thread_main(int socket, Args* args) {
                                     if ((*i).compare("") != 0) {
                                         filename = (*i).substr(0, (*i).find("/"));
                                         msg = std::to_string(index) + " " + get_file_id(filename, WORKING_VECTOR) + "\r\n";
-                                        thread_send(socket, msg);
+                                        TSEND(socket, msg);
                                     }
                                 }
                             }
 
                             msg = ".\r\n";
-                            thread_send(socket, msg);
+                            TSEND(socket, msg);
                         }
                         else { // UIDL str
                             if (!is_number(CMD_ARGS.c_str())) {
                                 msg = "-ERR Command UIDL in state TRANSACTION needs a mumerical argument (index)!\r\n";
-                                thread_send(socket, msg);
+                                TSEND(socket, msg);
                                 break;
                             }
                             unsigned int index = std::stoi(CMD_ARGS);
@@ -1121,17 +1119,17 @@ void thread_main(int socket, Args* args) {
                                 std::string filename = WORKING_VECTOR[index-1];
                                 if (filename.empty()) {
                                     msg = "-ERR Message is already deleted!\r\n";
-                                    thread_send(socket, msg);
+                                    TSEND(socket, msg);
                                 }
                                 else {
                                     filename = filename.substr(0, filename.find("/"));
                                     msg = "+OK " + std::to_string(index) + " " + get_file_id(filename, WORKING_VECTOR) + "\r\n";
-                                    thread_send(socket, msg);
+                                    TSEND(socket, msg);
                                 }
                             }
                             else {
                                 msg = "-ERR Out of range indexing in messages via \"UIDL <index>\"!\r\n";
-                                thread_send(socket, msg);
+                                TSEND(socket, msg);
                             }
 
                         }
@@ -1140,11 +1138,11 @@ void thread_main(int socket, Args* args) {
                     case STAT:
                         if (CMD_ARGS.empty()) {
                             msg = "+OK " + std::to_string(vector_size(WORKING_VECTOR)) + " " + std::to_string(get_size_summary(WORKING_VECTOR)) + "\r\n";
-                            thread_send(socket, msg);
+                            TSEND(socket, msg);
                         }
                         else {
                             msg = "-ERR Command STAT in TRANSACTION state does not support any arguments!\r\n";
-                            thread_send(socket, msg);
+                            TSEND(socket, msg);
                         }
                         break;
                     // ==================================================
@@ -1157,7 +1155,7 @@ void thread_main(int socket, Args* args) {
                             octets = get_size_summary(WORKING_VECTOR);
 
                             msg = "+OK " + std::to_string(count) + " messages (" + std::to_string(octets) + " octets)\r\n";
-                            thread_send(socket, msg);
+                            TSEND(socket, msg);
 
                             unsigned int index = 0;
                             std::string filename;
@@ -1168,18 +1166,18 @@ void thread_main(int socket, Args* args) {
                                     if ((*i).compare("") != 0) {
                                         filename = (*i).substr(0, (*i).find("/"));
                                         msg = std::to_string(index) + " " + std::to_string(get_file_size(filename, WORKING_VECTOR)) + "\r\n";
-                                        thread_send(socket, msg);
+                                        TSEND(socket, msg);
                                     }
                                 }
                             }
 
                             msg = ".\r\n";
-                            thread_send(socket, msg);
+                            TSEND(socket, msg);
                         }
                         else { // LIST str
                             if (!is_number(CMD_ARGS.c_str())) {
                                 msg = "-ERR Command LIST in state TRANSACTION needs a numerical argument (index)!\r\n";
-                                thread_send(socket, msg);
+                                TSEND(socket, msg);
                                 break;
                             }
                             unsigned int index = std::stoi(CMD_ARGS);
@@ -1188,17 +1186,17 @@ void thread_main(int socket, Args* args) {
                                 std::string filename = WORKING_VECTOR[index-1];
                                 if (filename.empty()) {
                                     msg = "-ERR Message is already deleted!\r\n";
-                                    thread_send(socket, msg);
+                                    TSEND(socket, msg);
                                 }
                                 else {
                                     filename = filename.substr(0, filename.find("/"));
                                     msg = "+OK " + std::to_string(index) + " " + std::to_string(get_file_size(filename, WORKING_VECTOR)) + "\r\n";
-                                    thread_send(socket, msg);
+                                    TSEND(socket, msg);
                                 }
                             }
                             else {
                                 msg = "-ERR Out of range indexing in messages via \"LIST <index>\"!\r\n";
-                                thread_send(socket, msg);
+                                TSEND(socket, msg);
                             }
 
                         }
@@ -1209,7 +1207,7 @@ void thread_main(int socket, Args* args) {
 
                             if (!is_number(CMD_ARGS.c_str())) {
                                 msg = "-ERR Command RETR in state TRANSACTION needs a numerical argument (index)!\r\n";
-                                thread_send(socket, msg);
+                                TSEND(socket, msg);
                                 break;
                             }
 
@@ -1220,28 +1218,28 @@ void thread_main(int socket, Args* args) {
                                 std::string filename = WORKING_VECTOR[index-1];
                                 if (filename.empty()) {
                                     msg = "-ERR Message is already deleted!\r\n";
-                                    thread_send(socket, msg);
+                                    TSEND(socket, msg);
                                 }
                                 else {
                                     filename = filename.substr(0, filename.find("/"));
 
                                     msg = "+OK " + std::to_string(get_file_size(filename, WORKING_VECTOR)) + " octets\r\n";
-                                    thread_send(socket, msg);
+                                    TSEND(socket, msg);
 
                                     std::string filepath = (args->path_maildir_cur.back() == '/') ? args->path_maildir_cur + filename :args->path_maildir_cur + "/" + filename;
                                     msg = get_file_content(filepath);
                                     msg += ".\r\n";
-                                    thread_send(socket, msg);
+                                    TSEND(socket, msg);
                                 }
                             }
                             else {
                                 msg = "-ERR Out of range indexing in messages via \"RETR <index>\"!\r\n";
-                                thread_send(socket, msg);
+                                TSEND(socket, msg);
                             }
                         }
                         else { // RETR
                             msg = "-ERR Command RETR in TRANSACTION state needs a argument!\r\n";
-                            thread_send(socket, msg);
+                            TSEND(socket, msg);
                         }
                         break;
                     // ==================================================
@@ -1249,7 +1247,7 @@ void thread_main(int socket, Args* args) {
                         if (!CMD_ARGS.empty()) { // DELE str
                             if (!is_number(CMD_ARGS.c_str())) {
                                 msg = "-ERR Command DELE in state TRANSACTION needs a mumerical argument (index)!\r\n";
-                                thread_send(socket, msg);
+                                TSEND(socket, msg);
                                 break;
                             }
                             unsigned int index = std::stoi(CMD_ARGS);
@@ -1258,7 +1256,7 @@ void thread_main(int socket, Args* args) {
                                 std::string filename = WORKING_VECTOR[index-1];
                                 if (filename.empty()) {
                                     msg = "-ERR Message is already deleted!\r\n";
-                                    thread_send(socket, msg);
+                                    TSEND(socket, msg);
                                 }
                                 else {
                                     filename = filename.substr(0, filename.find("/"));
@@ -1276,17 +1274,17 @@ void thread_main(int socket, Args* args) {
                                     }
 
                                     msg = "+OK Message " + CMD_ARGS + " deleted.\r\n";
-                                    thread_send(socket, msg);
+                                    TSEND(socket, msg);
                                 }
                             }
                             else {
                                 msg = "-ERR Out of range indexing in messages via \"DELE <index>\"!\r\n";
-                                thread_send(socket, msg);
+                                TSEND(socket, msg);
                             }
                         }
                         else {
                             msg = "-ERR Command DELE in state TRANSACTION needs a argument!\r\n";
-                            thread_send(socket, msg);
+                            TSEND(socket, msg);
                         }
                         break;
                     // ==================================================
@@ -1304,17 +1302,17 @@ void thread_main(int socket, Args* args) {
                             }
                             FILENAMES_TO_REMOVE.clear();
                             msg = "+OK\r\n";
-                            thread_send(socket, msg);
+                            TSEND(socket, msg);
                         }
                         else { // RSET str
                             msg = "-ERR Command RSET in state TRANSACTION does not support any arguments!\r\n";
-                            thread_send(socket, msg);
+                            TSEND(socket, msg);
                         }
                         break;
                     // ==================================================
                     default:
                         msg = "-ERR Wrong command in TRANSACTION state!\r\n";
-                        thread_send(socket, msg);
+                        TSEND(socket, msg);
                         break;
                 }
                 break;
