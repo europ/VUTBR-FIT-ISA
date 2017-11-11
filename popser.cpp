@@ -1,6 +1,6 @@
 /**
  * @author     Adrián Tóth
- * @date       28.10.2017
+ * @date       11.11.2017
  * @brief      POP3 server
  */
 
@@ -169,18 +169,27 @@ bool move_file(std::string filepath, std::string dirpath) {
 }
 
 // Function generate a random server-determined string for message ID
-std::string id_generator() { // BUG !!!!!! FIXIT TODO
+std::string id_generator(std::string filename) { // BUG !!!!!! FIXIT TODO
+
+    // get int value of filename => count every int value of every char in string
+    long double filename_number = 0;
+    for(char& c : filename) {
+        filename_number += int(c);
+    }
+
+    // https://wis.fit.vutbr.cz/FIT/st/phorum-msg-show.php?id=49087
+    // Martin Holkovič answered "1. yes" it means that every file will have its UNIQUE name
+    srand(filename_number);
 
     std::string str = "";
     char alphanum[] = ID_CHARS;
-    srand(std::clock()+time(NULL));
 
+    // generate a random string
     for (unsigned int i = 0; i < ID_LENGTH; ++i) {
         str += alphanum[rand() % (sizeof(alphanum) - 1)];
     }
 
-    PRINT(str);
-    ECHO();
+    // return UID string
     return str;
 }
 
@@ -466,7 +475,7 @@ void move_new_to_curr(Args* args) {
     for (auto i = files.begin(); i != files.end(); ++i) {
 
         f_name = (*i).substr((*i).find_last_of("/")+1, std::string::npos); // filename
-        f_id   = id_generator();                                           // file unique-id
+        f_id   = id_generator(f_name);                                     // file unique-id
         f_size = file_size(*i);                                            // file size
 
         // [filename][/][unique-id][/][size]["\n"]
