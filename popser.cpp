@@ -30,22 +30,20 @@
 #include <openssl/md5.h>
 #endif
 
-using namespace std;
-
 // DEBUG
 #define PRINT_VEC(vector) for (auto i = vector.begin(); i != vector.end(); ++i) std::cout << *i << std::endl; std::cout << std::endl;
 #define PRINT(data) std::cout << data << std::endl << std::endl;
 #define ECHO() std::cout << std::endl;
 
 // CONSTANTS
-#define PORT_MAX 65535
-#define HOSTNAME_LENGTH 64
+#define PORT_MAX 65535 // maximum of port number
+#define HOSTNAME_LENGTH 64 // maximum of hostname (chars)
 #define TIMEOUT_SECONDS 600 // 10 minutes
-#define LOG_FILE_NAME "log"
-#define DATA_FILE_NAME "data"
-#define DATA_FILE_DELIMITER "/"
-#define ID_LENGTH 20
-#define ID_CHARS "!\"#$%&'()*+,-." /* excluding SLASH */   "0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~" // SLASH is used many times as a delimiter
+#define LOG_FILE_NAME "log" // name of log file
+#define DATA_FILE_NAME "data" // name of data file
+#define DATA_FILE_DELIMITER "/" // delimiter used in data file
+#define ID_LENGTH 20 // unique-id length (chars)
+#define ID_CHARS "!\"#$%&'()*+,-."/* excluding SLASH */"0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~" // unique-id char set
 
 // GLOBAL VARIABLES
 bool flag_exit = false;
