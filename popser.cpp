@@ -39,6 +39,7 @@
 #define DATA_FILE_DELIMITER "/" // delimiter used in data file
 #define ID_LENGTH 20 // unique-id length (chars)
 #define ID_CHARS "!\"#$%&'()*+,-."/* excluding SLASH */"0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~" // unique-id char set
+#define THREAD_RECV_BUFF_SIZE 1024 // char buff[SIZE]
 
 // GLOBAL VARIABLES
 bool flag_exit = false;
@@ -169,7 +170,7 @@ bool move_file(std::string filepath, std::string dirpath) {
 }
 
 // Function generate a random server-determined string for message ID
-std::string id_generator(std::string filename) { // BUG !!!!!! FIXIT TODO
+std::string id_generator(std::string filename) {
 
     // get int value of filename => count every int value of every char in string
     long double filename_number = 0;
@@ -728,8 +729,8 @@ std::string get_greeting_banner() {
     char h_hostname[HOSTNAME_LENGTH];
     int retval = gethostname(h_hostname, HOSTNAME_LENGTH); // HOSTNAME
     if(retval != 0) {
-        fprintf(stderr, "gethostname() failed!\n"); // TODO FIXIT nic nepisat na stderr
-        return NULL;
+        fprintf(stderr, "gethostname() failed in function \"get_greeting_banner()\"!\n");
+        memset(&h_hostname,0,sizeof(h_hostname));
     }
 
     // [<][PID][.][TIME][@][HOSTNAME][>]
@@ -814,7 +815,7 @@ void thread_main(int socket, Args* args) {
     // DECLARATION
     int res;
     int retval;
-    char buff[1024];
+    char buff[THREAD_RECV_BUFF_SIZE];
     bool flag_USER;
     bool flag_WRONGUSER;
     time_t time_from;
@@ -847,7 +848,6 @@ void thread_main(int socket, Args* args) {
                     remove_file(*i, args);
                 }
             }
-            // TODO send message ?
             close(socket);
             mutex_maildir.unlock();
             return;
@@ -862,7 +862,7 @@ void thread_main(int socket, Args* args) {
 
 
         // RECEIVE
-        res = recv(socket, buff, 1024,0); // FIXIT TODO buffer size
+        res = recv(socket, buff, THREAD_RECV_BUFF_SIZE, 0);
         if (flag_exit) { // SIGINT
             close(socket);
             return;
@@ -1060,7 +1060,7 @@ void thread_main(int socket, Args* args) {
                             thread_send(socket, msg);
                         }
                         else { // QUIT
-                            msg = "+OK\r\n";
+                            msg = "+OK POP3 server signing off.\r\n";
                             thread_send(socket, msg);
                             STATE = UPDATE;
                         }
@@ -1091,7 +1091,7 @@ void thread_main(int socket, Args* args) {
                         }
                         else { // UIDL str
                             if (!is_number(CMD_ARGS.c_str())) {
-                                msg = "-ERR Command UIDL in state TRANSACTION needs a mumerical argument (index)!\r\n"; // TODO
+                                msg = "-ERR Command UIDL in state TRANSACTION needs a mumerical argument (index)!\r\n";
                                 thread_send(socket, msg);
                                 break;
                             }
@@ -1100,7 +1100,7 @@ void thread_main(int socket, Args* args) {
                             if (0 < index && index <= WV_size) {
                                 std::string filename = WORKING_VECTOR[index-1];
                                 if (filename.empty()) {
-                                    msg = "-ERR Message is already deleted!\r\n"; // TODO
+                                    msg = "-ERR Message is already deleted!\r\n";
                                     thread_send(socket, msg);
                                 }
                                 else {
@@ -1110,7 +1110,7 @@ void thread_main(int socket, Args* args) {
                                 }
                             }
                             else {
-                                msg = "-ERR Out of range indexing in messages via \"UIDL <index>\"!\r\n"; // TODO
+                                msg = "-ERR Out of range indexing in messages via \"UIDL <index>\"!\r\n";
                                 thread_send(socket, msg);
                             }
 
@@ -1158,7 +1158,7 @@ void thread_main(int socket, Args* args) {
                         }
                         else { // LIST str
                             if (!is_number(CMD_ARGS.c_str())) {
-                                msg = "-ERR Command LIST in state TRANSACTION needs a numerical argument (index)!\r\n"; // TODO
+                                msg = "-ERR Command LIST in state TRANSACTION needs a numerical argument (index)!\r\n";
                                 thread_send(socket, msg);
                                 break;
                             }
@@ -1167,7 +1167,7 @@ void thread_main(int socket, Args* args) {
                             if (0 < index && index <= WV_size) {
                                 std::string filename = WORKING_VECTOR[index-1];
                                 if (filename.empty()) {
-                                    msg = "-ERR Message is already deleted!\r\n"; // TODO
+                                    msg = "-ERR Message is already deleted!\r\n";
                                     thread_send(socket, msg);
                                 }
                                 else {
@@ -1177,7 +1177,7 @@ void thread_main(int socket, Args* args) {
                                 }
                             }
                             else {
-                                msg = "-ERR Out of range indexing in messages via \"LIST <index>\"!\r\n"; // TODO
+                                msg = "-ERR Out of range indexing in messages via \"LIST <index>\"!\r\n";
                                 thread_send(socket, msg);
                             }
 
@@ -1188,7 +1188,7 @@ void thread_main(int socket, Args* args) {
                         if (!CMD_ARGS.empty()) { // RETR str
 
                             if (!is_number(CMD_ARGS.c_str())) {
-                                msg = "-ERR Command RETR in state TRANSACTION needs a numerical argument (index)!\r\n"; // TODO
+                                msg = "-ERR Command RETR in state TRANSACTION needs a numerical argument (index)!\r\n";
                                 thread_send(socket, msg);
                                 break;
                             }
@@ -1199,7 +1199,7 @@ void thread_main(int socket, Args* args) {
                             if (0 < index && index <= WV_size) {
                                 std::string filename = WORKING_VECTOR[index-1];
                                 if (filename.empty()) {
-                                    msg = "-ERR Message is already deleted!\r\n"; // TODO
+                                    msg = "-ERR Message is already deleted!\r\n";
                                     thread_send(socket, msg);
                                 }
                                 else {
@@ -1228,7 +1228,7 @@ void thread_main(int socket, Args* args) {
                     case DELE:
                         if (!CMD_ARGS.empty()) { // DELE str
                             if (!is_number(CMD_ARGS.c_str())) {
-                                msg = "-ERR Command DELE in state TRANSACTION needs a mumerical argument (index)!\r\n"; // TODO
+                                msg = "-ERR Command DELE in state TRANSACTION needs a mumerical argument (index)!\r\n";
                                 thread_send(socket, msg);
                                 break;
                             }
@@ -1237,7 +1237,7 @@ void thread_main(int socket, Args* args) {
                             if (index <= WV_size) {
                                 std::string filename = WORKING_VECTOR[index-1];
                                 if (filename.empty()) {
-                                    msg = "-ERR Message is already deleted!\r\n"; // TODO
+                                    msg = "-ERR Message is already deleted!\r\n";
                                     thread_send(socket, msg);
                                 }
                                 else {
@@ -1260,7 +1260,7 @@ void thread_main(int socket, Args* args) {
                                 }
                             }
                             else {
-                                msg = "-ERR Out of range indexing in messages via \"DELE <index>\"!\r\n"; // TODO
+                                msg = "-ERR Out of range indexing in messages via \"DELE <index>\"!\r\n";
                                 thread_send(socket, msg);
                             }
                         }
@@ -1362,7 +1362,7 @@ void server_kernel(Args* args) {
 
         // accept a connection on a socket
         communication_socket = accept(welcome_socket, (struct sockaddr*)&sa_client, &sa_client_len);
-        if (communication_socket == -1) { // TODO FIXIT - what to do if accept fails ??? WHAT? WHAT IS THIS ?
+        if (communication_socket == -1) {
             fprintf(stderr, "accept() failed!\n");
             continue;
         }
