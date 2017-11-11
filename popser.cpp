@@ -38,11 +38,23 @@
 #define DATA_FILE_NAME "data" // name of data file
 #define DATA_FILE_DELIMITER "/" // delimiter used in data file
 #define ID_LENGTH 20 // unique-id length (chars)
-#define ID_CHARS "!\"#$%&'()*+,-."/* excluding SLASH */"0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~" // unique-id char set
+#define ID_CHARS "!\"#$%&'()*+,-."/*SLASH*/"0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~" // unique-id char set excluding slash
 #define THREAD_RECV_BUFF_SIZE 1024 // char buff[SIZE]
+
+// if send failed close socket, open mutex if locked, kill thread => do a "return" in thread_main (macro used only in thread_main)
+#define TSEND(s,m)                       \
+    if (!thread_send(s,m)) {             \
+        close(socket);                   \
+        if (flag_mutex) {                \
+            mutex_maildir.unlock();      \
+            flag_mutex = false;          \
+        }                                \
+        return;                          \
+    }
 
 // GLOBAL VARIABLES
 bool flag_exit = false;
+bool flag_mutex = false;
 std::mutex mutex_maildir;
 
 // enum for states
@@ -712,10 +724,14 @@ void load_cmd_and_args(Command* CMD, std::string& ARGS, std::string& str) {
 }
 
 // Function sends message to client via socket
-void thread_send(int socket, std::string& str) {
-    // TODO FIXIT socket - what if socket is corrupted?
-    send(socket, str.c_str(), str.length(), 0);
-    return;
+bool thread_send(int socket, std::string& str) {
+    long long int retval;
+    retval = send(socket, str.c_str(), str.length(), 0);
+    if (retval == -1) {
+        fprintf(stderr, "\"send()\" failed in function \"thread_send()\", socket is corrupted!\n");
+        return false;
+    }
+    return true;
 }
 
 // Function creates string for MD5 hash
@@ -729,7 +745,7 @@ std::string get_greeting_banner() {
     char h_hostname[HOSTNAME_LENGTH];
     int retval = gethostname(h_hostname, HOSTNAME_LENGTH); // HOSTNAME
     if(retval != 0) {
-        fprintf(stderr, "gethostname() failed in function \"get_greeting_banner()\"!\n");
+        fprintf(stderr, "\"gethostname()\" failed in function \"get_greeting_banner()\", hostname will be empty string!\n");
         memset(&h_hostname,0,sizeof(h_hostname));
     }
 
@@ -849,6 +865,7 @@ void thread_main(int socket, Args* args) {
                 }
             }
             close(socket);
+            flag_mutex = false;
             mutex_maildir.unlock();
             return;
         }
@@ -884,7 +901,8 @@ void thread_main(int socket, Args* args) {
             continue;
         }
         else {
-            fprintf(stderr, "recv() failed!\n");
+            fprintf(stderr, "\"recv()\" failed in function \"thread_main\", close socket and kill thread!\n");
+            close(socket);
             return;
         }
 
@@ -966,6 +984,7 @@ void thread_main(int socket, Args* args) {
                                                 return; // kill thread
                                             }
                                             // TODO check maildir
+                                            flag_mutex = true;
                                             STATE = TRANSACTION;
                                             move_new_to_curr(args);
                                             WORKING_VECTOR = load_file_lines_to_vector(DATA_FILE_NAME);
@@ -1021,6 +1040,7 @@ void thread_main(int socket, Args* args) {
                                 }
 
                                 // TODO check maildir
+                                flag_mutex = true;
                                 STATE = TRANSACTION;
                                 move_new_to_curr(args);
                                 WORKING_VECTOR = load_file_lines_to_vector(DATA_FILE_NAME);
