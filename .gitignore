@@ -1,12 +1,16 @@
+# BINARY FILES
 IPK-template/server
 IPK-template/client
-
 popser
 test
+hash
 
-maildir/
-
-xtotha01.tar
-
+# POPSER LOG FILES
 log
 data
+
+# MAILDIR FOLDER CONTENT
+maildir/
+
+# ARCHIVE
+xtotha01.tar

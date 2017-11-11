@@ -4,8 +4,6 @@
  * @brief      POP3 server
  */
 
-//#define md5
-
 #include <ctime>
 #include <mutex>
 #include <string>
@@ -25,10 +23,7 @@
 #include <sys/socket.h>
 #include <sys/select.h>
 #include <sys/types.h>
-
-#ifdef md5
 #include <openssl/md5.h>
-#endif
 
 // DEBUG
 #define PRINT_VEC(vector) for (auto i = vector.begin(); i != vector.end(); ++i) std::cout << *i << std::endl; std::cout << std::endl;
@@ -728,8 +723,6 @@ std::string get_greeting_banner() {
     return str;
 }
 
-#ifdef md5 // =====================================================================================
-
 // Function create a MD5 digest hash
 std::string get_md5_hash(std::string& greeting_banner, std::string& password) {
 
@@ -799,8 +792,6 @@ int apop_parser(int socket, Args* args, std::string& str, std::string& greeting_
 
     return 0;
 }
-
-#endif //==========================================================================================
 
 // Passed function to thread which define behavior of thread
 void thread_main(int socket, Args* args) {
@@ -1009,50 +1000,27 @@ void thread_main(int socket, Args* args) {
                             }
                             else { // APOP str
 
-                                #ifdef md5
+                                retval = apop_parser(socket, args, CMD_ARGS, GREETING_BANNER);
+                                if (retval == 1) {
+                                    break;
+                                }
+                                msg = "+OK Logged in.\r\n";
+                                thread_send(socket, msg);
 
-                                    retval = apop_parser(socket, args, CMD_ARGS, GREETING_BANNER);
-                                    if (retval == 1) {
-                                        break;
-                                    }
-                                    msg = "+OK Logged in.\r\n";
+                                if (!mutex_maildir.try_lock()) {
+                                    // RFC: If the maildrop cannot be opened for some reason, the POP3 server responds with a negative status indicator.
+                                    msg = "-ERR Maildrop is locked by someone else!\r\n";
                                     thread_send(socket, msg);
+                                    // RFC: After returning a negative status indicator, the server may close the connection.
+                                    close(socket);
+                                    return; // kill thread
+                                }
 
-                                    if (!mutex_maildir.try_lock()) {
-                                        // RFC: If the maildrop cannot be opened for some reason, the POP3 server responds with a negative status indicator.
-                                        msg = "-ERR Maildrop is locked by someone else!\r\n";
-                                        thread_send(socket, msg);
-                                        // RFC: After returning a negative status indicator, the server may close the connection.
-                                        close(socket);
-                                        return; // kill thread
-                                    }
+                                // TODO check maildir
+                                STATE = TRANSACTION;
+                                move_new_to_curr(args);
+                                WORKING_VECTOR = load_file_lines_to_vector(DATA_FILE_NAME);
 
-                                    // TODO check maildir
-                                    STATE = TRANSACTION;
-                                    move_new_to_curr(args);
-                                    WORKING_VECTOR = load_file_lines_to_vector(DATA_FILE_NAME);
-
-                                #else // REMOVE THIS ########################################
-
-                                    (void)retval; // -Wunused-variable
-                                    msg = "+OK Logged in.\r\n";
-                                    thread_send(socket, msg);
-
-                                    if (!mutex_maildir.try_lock()) {
-                                        // RFC: If the maildrop cannot be opened for some reason, the POP3 server responds with a negative status indicator.
-                                        msg = "-ERR Maildrop is locked by someone else!\r\n";
-                                        thread_send(socket, msg);
-                                        // RFC: After returning a negative status indicator, the server may close the connection.
-                                        close(socket);
-                                        return; // kill thread
-                                    }
-
-                                    // TODO check maildir
-                                    STATE = TRANSACTION;
-                                    move_new_to_curr(args);
-                                    WORKING_VECTOR = load_file_lines_to_vector(DATA_FILE_NAME);
-
-                                #endif // ###################################################
                             }
                         }
                         else { // APOP command is NOT supported
