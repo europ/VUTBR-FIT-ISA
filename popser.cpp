@@ -27,7 +27,7 @@
 
 // DEBUG
 #define PRINT_VEC(vector) for (auto i = vector.begin(); i != vector.end(); ++i) std::cout << *i << std::endl; std::cout << std::endl;
-#define PRINT(data) std::cout << data << std::endl << std::endl;
+#define PRINT(data) std::cout << data << std::endl;
 #define ECHO() std::cout << std::endl;
 
 // CONSTANTS
@@ -169,7 +169,7 @@ bool move_file(std::string filepath, std::string dirpath) {
 }
 
 // Function generate a random server-determined string for message ID
-std::string id_generator() {
+std::string id_generator() { // BUG !!!!!! FIXIT TODO
 
     std::string str = "";
     char alphanum[] = ID_CHARS;
@@ -179,6 +179,8 @@ std::string id_generator() {
         str += alphanum[rand() % (sizeof(alphanum) - 1)];
     }
 
+    PRINT(str);
+    ECHO();
     return str;
 }
 
@@ -335,11 +337,15 @@ unsigned int get_file_size(std::string& filename, std::vector<std::string>& data
 
 // Function return file id from vector (vector = loaded DATA file)
 std::string get_file_id(std::string& filename, std::vector<std::string>& data) {
-    std::string id;
+    std::string id = "";
+    std::size_t first_slash;
+    std::size_t last_slash;
     for (auto i = data.begin(); i != data.end(); ++i) {
         if ((*i).compare("") != 0) {
             if (filename.compare((*i).substr(0, (*i).find("/"))) == 0) {
-                id = (*i).substr((*i).find("/")+1, (*i).find_last_of("/"));
+                first_slash = (*i).find("/");
+                last_slash  = (*i).find_last_of("/");
+                id = (*i).substr(first_slash+1, (last_slash-first_slash)-1);
             }
         }
     }
