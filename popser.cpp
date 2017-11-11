@@ -203,7 +203,7 @@ std::string file_size(std::string filename) {
     std::ifstream in(filename);
     std::string str((std::istreambuf_iterator<char>(in)), std::istreambuf_iterator<char>());
     if (str.back() == '\n') ENDS_WITH_NEWLINE = true;
-    
+
     // file size
     std::ifstream infile(filename, std::ifstream::ate | std::ifstream::binary);
     size = infile.tellg();
@@ -1254,6 +1254,9 @@ void thread_main(int socket, Args* args) {
                                             *i = "";
                                         }
                                     }
+
+                                    msg = "+OK Message " + CMD_ARGS + " deleted.\r\n";
+                                    thread_send(socket, msg);
                                 }
                             }
                             else {
@@ -1275,6 +1278,7 @@ void thread_main(int socket, Args* args) {
                                     if ((*WV_i).empty()) {
                                         rset_tmp = get_filename_line_from_data(*FTR_i);
                                         *WV_i = rset_tmp;
+                                        break;
                                     }
                                 }
                             }
