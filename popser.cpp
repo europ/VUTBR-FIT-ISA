@@ -916,17 +916,6 @@ void thread_main(int socket, Args* args) {
             case AUTHORIZATION:
                 switch(COMMAND){
                     // ==================================================
-                    case NOOP:
-                        if (!CMD_ARGS.empty()) { // NOOP str
-                            msg = "-ERR Command NOOP in AUTHORIZATION state does not support any arguments!\r\n";
-                            thread_send(socket, msg);
-                        }
-                        else { // NOOP
-                            msg = "+OK\r\n";
-                            thread_send(socket, msg);
-                        }
-                        break;
-                    // ==================================================
                     case QUIT:
                         if (!CMD_ARGS.empty()) { // QUIT str
                             msg = "-ERR Command QUIT in AUTHORIZATION state does not support any arguments!\r\n";
@@ -1056,7 +1045,7 @@ void thread_main(int socket, Args* args) {
                     // ==================================================
                     case NOOP:
                         if (!CMD_ARGS.empty()) { // NOOP str
-                            msg = "-ERR Command NOOP in AUTHORIZATION state does not support any arguments!\r\n";
+                            msg = "-ERR Command NOOP in TRANSACTION state does not support any arguments!\r\n";
                             thread_send(socket, msg);
                         }
                         else { // NOOP
