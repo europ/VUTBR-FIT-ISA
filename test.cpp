@@ -2,17 +2,18 @@
 #include <string>
 #include <fstream>
 
-#define PRINT(data) std::cout << "==>" << data << "<==" << std::endl << std::endl
-
 // Function get the file size in octets
 std::string file_size(std::string filename) {
-    long long unsigned int size = 0;
-    bool ENDS_WITH_NEWLINE = false;
 
+    long long unsigned int size = 0;
+
+    // file ends with \n
+    bool ENDS_WITH_NEWLINE = false;
     std::ifstream in(filename);
     std::string str((std::istreambuf_iterator<char>(in)), std::istreambuf_iterator<char>());
     if (str.back() == '\n') ENDS_WITH_NEWLINE = true;
     
+    // file size
     std::ifstream infile(filename, std::ifstream::ate | std::ifstream::binary);
     size = infile.tellg();
 
@@ -20,15 +21,13 @@ std::string file_size(std::string filename) {
     std::ifstream file(filename);
     std::string buff;
     while(std::getline(file, line)) {
-        buff = (line.back() == '\r') ? line.substr(0, line.size()-1) : line;
-        PRINT(buff);
         if (line.back() != '\r') {
             size++;
         }
     }
 
     if (!ENDS_WITH_NEWLINE) {
-        size--;
+        size++;
     }
 
     return std::to_string(size);

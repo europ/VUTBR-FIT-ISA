@@ -191,10 +191,33 @@ std::string id_generator() {
 
 // Function get the file size in octets
 std::string file_size(std::string filename) {
-    FILE* file;
-    file = fopen(filename.c_str(),"rb");
-    fseek(file, 0L, SEEK_END);
-    long long unsigned int size = ftell(file);
+
+    long long unsigned int size = 0;
+
+    // file ends with \n
+    bool ENDS_WITH_NEWLINE = false;
+    std::ifstream in(filename);
+    std::string str((std::istreambuf_iterator<char>(in)), std::istreambuf_iterator<char>());
+    if (str.back() == '\n') ENDS_WITH_NEWLINE = true;
+    
+    // file size
+    std::ifstream infile(filename, std::ifstream::ate | std::ifstream::binary);
+    size = infile.tellg();
+
+    std::string line;
+    std::ifstream file(filename);
+    std::string buff;
+    while(std::getline(file, line)) {
+        if (line.back() != '\r') {
+            size++;
+        }
+    }
+
+    // file does not end with \n
+    if (!ENDS_WITH_NEWLINE) {
+        size++;
+    }
+
     return std::to_string(size);
 }
 
