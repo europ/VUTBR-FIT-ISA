@@ -10,7 +10,7 @@ log
 data
 
 # MAILDIR FOLDER CONTENT
-maildir/
+maildir/*
 
 # ARCHIVE
 xtotha01.tar
