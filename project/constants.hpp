@@ -1,5 +1,5 @@
-#ifndef constants
-#define constants
+#ifndef __constants_hpp
+#define __constants_hpp
 
 #define PORT_MAX              65535  // maximum of port number
 #define HOSTNAME_LENGTH       64     // maximum of hostname (chars)

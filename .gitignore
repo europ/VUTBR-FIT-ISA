@@ -14,3 +14,6 @@ maildir/
 
 # ARCHIVE
 xtotha01.tar
+
+# EXTENSIONS
+project/*.o

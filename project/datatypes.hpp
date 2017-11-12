@@ -1,5 +1,5 @@
-#ifndef datatypes
-#define datatypes
+#ifndef __datatypes_hpp
+#define __datatypes_hpp
 
 // enum for states
 enum State {
