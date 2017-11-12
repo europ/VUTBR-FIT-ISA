@@ -1,62 +1,44 @@
 #include <iostream>
 #include <string>
 #include <fstream>
-#include <vector>
-#include <algorithm>
 
-// Function load file content line by line as std::string to a std::vector
-std::vector<std::string> load_file_lines_to_vector(std::string file) {
+// Function get the file size in octets
+std::string file_size(std::string filename) {
 
-    std::ifstream logfile(file);
-    std::vector<std::string> files;
+    long long unsigned int size = 0;
+
+    // file ends with \n
+    bool ENDS_WITH_NEWLINE = false;
+    std::ifstream in(filename);
+    std::string str((std::istreambuf_iterator<char>(in)), std::istreambuf_iterator<char>());
+    if (str.back() == '\n') ENDS_WITH_NEWLINE = true;
+    
+    // file size
+    std::ifstream infile(filename, std::ifstream::ate | std::ifstream::binary);
+    size = infile.tellg();
+
     std::string line;
-
-    while (std::getline(logfile, line)) {
-        files.push_back(line);
+    std::ifstream file(filename);
+    std::string buff;
+    while(std::getline(file, line)) {
+        if (line.back() != '\r') {
+            size++;
+        }
     }
 
-    logfile.close();
-
-    return files;
-}
-
-void remove_matches_from_vector(std::vector<std::string>& vector, std::vector<std::string>& data) {
-    if (vector.empty() || data.empty()) return;
-    for (auto i = data.begin(); i != data.end(); ++i) {
-        vector.erase(std::remove(vector.begin(), vector.end(), (*i).c_str()), vector.end());
+    if (!ENDS_WITH_NEWLINE) {
+        size++;
     }
+
+    return std::to_string(size);
 }
+
 
 int main(int argc, char* argv[]) {
 
-    if (argc != 2) {
-        fprintf(stderr, "USAGE: ./test \"filename\"");
-        exit(1);
-    }
-
-    std::vector<std::string> v = { "adrian", "adam", "jakub", "peter", "filip", "asdf", "juraj", "martin", "david" };
-    std::vector<std::string> content = load_file_lines_to_vector(argv[1]);
-
-    std::cout << std::endl;
-    std::cout << "FILE CONTENT ==================" << std::endl;
-    for (auto i = content.begin(); i != content.end(); ++i) {
-        std::cout << *i << std::endl;
-    } 
-
-    std::cout << std::endl;
-    std::cout << "VECTOR BEFORE =================" << std::endl;
-    for (auto i = v.begin(); i != v.end(); ++i) {
-        std::cout << *i << std::endl;
-    }
-
-    std::cout << std::endl;
-    std::cout << "VECTOR AFTER ==================" << std::endl;
-    
-    remove_matches_from_vector(v, content);
-
-    for (auto i = v.begin(); i != v.end(); ++i) {
-            std::cout << *i << std::endl;
-    }
+    if (argc != 2) exit(1);
+    std::cout << file_size(argv[1]) << std::endl;
 
     return 0;
 }
+    
