@@ -28,11 +28,11 @@ void usage() {
 }
 
 // Function loads username and password from authentication file
-void load_auth_file(Args* args) { // TODO FIXIT
+void load_auth_file(Args* args) {
 
     FILE* fd;
     fd = fopen(args->path_a.c_str(),"r");
-    if (fd == NULL ) {
+    if (fd == NULL ) { // check file open
         fprintf(stderr, "Failed to open authentication file!\n");
         exit(1);
     }
@@ -41,23 +41,23 @@ void load_auth_file(Args* args) { // TODO FIXIT
     char buff[4096];
     memset(&buff,0,sizeof(buff));
 
-    retval = fscanf(fd,"username = %s\n", buff);
+    retval = fscanf(fd,"username = %s\n", buff); // read username
     if (retval == 0) {
         fprintf(stderr, "Failed to load username from authentication file!\n");
         exit(1);
     }
-    args->username = buff;
+    args->username = buff; // add username to shared class
 
     memset(&buff,0,sizeof(buff));
 
-    retval = fscanf(fd,"password = %s", buff);
+    retval = fscanf(fd,"password = %s", buff); // read password
     if (retval == 0) {
         fprintf(stderr, "Failed to load password from authentication file!\n");
         exit(1);
     }
-    args->password = buff;
+    args->password = buff; // add password to shared class
 
-    fclose(fd);
+    fclose(fd); // close file
 }
 
 
@@ -81,7 +81,7 @@ void argpar(int* argc, char* argv[], Args* args) {
     // check for other options
     else {
         int c;
-        while ((c = getopt(*argc, argv, "a:cp:d:r")) != -1) {
+        while ((c = getopt(*argc, argv, "a:cp:d:r")) != -1) { // load options
             switch (c) {
                 case 'a':
                     args->a = true;
@@ -109,6 +109,7 @@ void argpar(int* argc, char* argv[], Args* args) {
             }
         }
 
+        // check if port or authfile or maildir is missing
         if( !args->p || !args->a || !args->d) {
             fprintf(stderr, "Wrong options!\n");
             exit(1);
@@ -116,14 +117,14 @@ void argpar(int* argc, char* argv[], Args* args) {
 
         // check port
         if (args->p) {
-            if (!is_number(args->port.c_str())) {
+            if (!is_number(args->port.c_str())) { // check if port is string consisting only from numbers
                 fprintf(stderr, "Wrong port!\n");
                 exit(1);
             }
             else {
                 const char* str = args->port.c_str();
                 long int number = strtol(str, NULL, 10);
-                if ((number < 0) || (PORT_MAX < number) || (errno == ERANGE)) {
+                if ((number < 0) || (PORT_MAX < number) || (errno == ERANGE)) { // check if port is within 0-PORTMAX range
                     fprintf(stderr, "Wrong port! Port is not from range 0-%d.\n", PORT_MAX);
                     exit(1);
                 }
@@ -137,13 +138,12 @@ void argpar(int* argc, char* argv[], Args* args) {
                 exit(1);
             }
             else {
-                load_auth_file(args);
+                load_auth_file(args); // load username and password to class args
             }
         }
 
         // check maildir directory existence
         if (args->d) {
-            // TODO check if param -d has string
             if (!dir_exists(args->path_d)) {
                 fprintf(stderr, "Wrong maildir direcotry!\n");
                 exit(1);

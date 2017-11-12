@@ -32,6 +32,7 @@
         return;                          \
     }
 
+// GLOBAL VARIABLES defined in popser.cpp
 extern bool flag_exit;
 extern bool flag_mutex;
 extern std::mutex mutex_maildir;
@@ -54,12 +55,12 @@ void load_cmd_and_args(Command* CMD, std::string& ARGS, std::string& str) {
 // Function sends message to client via socket
 bool thread_send(int socket, std::string& str) {
     long long int retval;
-    retval = send(socket, str.c_str(), str.length(), 0);
-    if (retval == -1) {
+    retval = send(socket, str.c_str(), str.length(), 0); // send message
+    if (retval == -1) { // check whether send has succeeded
         fprintf(stderr, "\"send()\" failed in function \"thread_send()\", socket is corrupted!\n");
-        return false;
+        return false; // send failed
     }
-    return true;
+    return true; // send succeeded
 }
 
 // Function provide username and md5 hash validation
@@ -70,9 +71,9 @@ int apop_parser(int socket, Args* args, std::string& str, std::string& greeting_
     std::string msg;
     std::size_t pos;
 
-    pos = str.find(" ");
+    pos = str.find(" "); // fing first whitespace - delimiter between username and digest
 
-    if (pos == std::string::npos) {
+    if (pos == std::string::npos) { // delimiter was not found
         msg = "-ERR Command APOP in AUTHORIZATION state failed! Wrong arguments of APOP.\r\n";
         return (!thread_send(socket, msg)) ? 2 : 1;
     }
@@ -81,12 +82,12 @@ int apop_parser(int socket, Args* args, std::string& str, std::string& greeting_
         digest = str.substr(pos+1, str.length());
     }
 
-    if (username.empty()) {
+    if (username.empty()) { // missing username
         msg = "-ERR Command APOP in AUTHORIZATION state failed! Wrong arguments of APOP. Username is missing.\r\n";
         return (!thread_send(socket, msg)) ? 2 : 1;
     }
 
-    if (digest.empty()) {
+    if (digest.empty()) { // missing diges
         msg = "-ERR Command APOP in AUTHORIZATION state failed! Wrong arguments of APOP. Digest is missing.\r\n";
         return (!thread_send(socket, msg)) ? 2 : 1;
     }
@@ -138,6 +139,7 @@ void thread_main(int socket, Args* args) {
 
     while(1) {
 
+        // UPDATE
         if (STATE == UPDATE) {
             if (FILENAMES_TO_REMOVE.size() != 0) {
                 for (auto i = FILENAMES_TO_REMOVE.begin(); i != FILENAMES_TO_REMOVE.end(); ++i) {
@@ -161,8 +163,6 @@ void thread_main(int socket, Args* args) {
         // RECEIVE
         res = recv(socket, buff, THREAD_RECV_BUFF_SIZE, 0);
         if (flag_exit) { // SIGINT
-            msg = "Closing connection due to capturing SIGINT on the server!\r\n";
-            TSEND(socket, msg);
             close(socket);
             return;
         }
@@ -203,7 +203,7 @@ void thread_main(int socket, Args* args) {
             }
         }
 
-        load_cmd_and_args(&COMMAND, CMD_ARGS, data);
+        load_cmd_and_args(&COMMAND, CMD_ARGS, data); // split the string to CMD and ARG-STRING (delimiter = whitespace)
 
         switch(STATE){
             // ==========================================================

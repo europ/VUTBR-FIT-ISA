@@ -1,9 +1,3 @@
-/**
- * @author     Adrián Tóth
- * @date       12.11.2017
- * @brief      POP3 server
- */
-
 #include <mutex>  // std::mutex
 #include <thread> // std::thread
 #include <csignal>
@@ -37,13 +31,10 @@ void signal_handler(int x) {
 // Function is the kernel of this program, set up connection and threads
 void server_kernel(Args* args) {
 
-    if (args->r) {
-        reset();
-    }
-
+    // necessary variables for communication management
     int retval;
     int flags;
-    int port_number = atoi((args->port).c_str());
+    int port_number = atoi((args->port).c_str()); // port number was checked before
     int welcome_socket;
     int communication_socket;
     struct sockaddr_in6 sa;
@@ -77,6 +68,7 @@ void server_kernel(Args* args) {
         exit(1);
     }
 
+    // connection management
     while(1) {
 
         fd_set fds;
@@ -104,22 +96,21 @@ void server_kernel(Args* args) {
             continue;
         }
 
-        std::thread thrd(thread_main, communication_socket, args);
+        std::thread thrd(thread_main, communication_socket, args); // thread_main is a FinitStateMachine declared in fsm.hpp
         thrd.detach();
     }
 
-    return;
 }
 
 // The Main
 int main(int argc, char* argv[]) {
 
-    std::signal(SIGINT, signal_handler);
+    std::signal(SIGINT, signal_handler); // signal handler
 
-    Args args;
-    argpar(&argc, argv, &args);
+    Args args; // shared class
+    argpar(&argc, argv, &args); // check arguments
 
-    server_kernel(&args);
+    server_kernel(&args); // start server
 
     return 0;
 }
