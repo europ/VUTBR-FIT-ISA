@@ -1,0 +1,74 @@
+\documentclass[11pt,a4paper]{article}
+
+\usepackage[left=2cm,text={17cm,24cm},top=3cm]{geometry}
+\usepackage[slovak]{babel}
+\usepackage[]{opensans}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{times}
+\usepackage{cite}
+\usepackage{url}
+\usepackage{color}
+\usepackage[unicode,colorlinks,hyperindex,plainpages=false,urlcolor=black,linkcolor=black,citecolor=black]{hyperref}
+
+\providecommand{\uv}[1]{\quotedblbase #1\textquotedblleft}
+
+\clubpenalty=10000
+\widowpenalty=10000
+
+\begin{document} %#################################################################################
+
+%TITLEPAGE
+\begin{titlepage}
+
+\begin{center}
+
+	\thispagestyle{empty}
+
+	\textsc {
+		\Huge Vysoké učení technické v~Brně\\[0.4em]
+		\huge Fakulta informačních technologií
+	}\\
+
+	\vspace{\stretch{0.382}}
+
+	{
+		\LARGE Síťové aplikace a správa sítí\\[0.4em]
+		\Huge POP3 server
+	}
+
+	\vspace{\stretch{0.618}}
+
+\end{center}
+
+	{
+		\LARGE \today \hfill Adrián Tóth
+	}
+
+\end{titlepage}	
+
+%CONTENT
+\setlength{\parskip}{0pt}
+{\hypersetup{hidelinks}\tableofcontents}
+\setlength{\parskip}{0pt}
+
+\newpage %#########################################################################################
+
+\section{Asdf}
+Lorem ipsum dolor sit amet, consectetur adipiscing elit. Pellentesque ut pretium metus. Sed viverra consectetur orci vel luctus. Suspendisse ullamcorper gravida nisi eu suscipit. Suspendisse potenti. Maecenas sollicitudin in sem a consectetur. Etiam tristique est sed ex sollicitudin tincidunt. Mauris eget lacinia ligula. Aliquam erat volutpat. Praesent tincidunt purus sit amet eleifend accumsan. Morbi ultricies tempus nisl eu feugiat. Pellentesque vel turpis eget enim ultricies venenatis. 
+
+\section{Qwerty}
+Lorem ipsum dolor sit amet, consectetur adipiscing elit\cite{Xyz}. Pellentesque ut pretium metus. Sed viverra consectetur orci vel luctus. Suspendisse ullamcorper gravida nisi eu suscipit. Suspendisse potenti. Maecenas sollicitudin in sem a consectetur. Etiam tristique est sed ex sollicitudin tincidunt. Mauris eget lacinia ligula. Aliquam erat volutpat. Praesent tincidunt purus sit amet eleifend accumsan. Morbi ultricies tempus nisl eu feugiat. Pellentesque vel turpis eget enim ultricies venenatis.
+
+\newpage %#########################################################################################
+
+\makeatletter
+\makeatother
+\bibliographystyle{czechiso}
+\begin{flushleft}
+	\bibliography{quotation}
+\end{flushleft}
+
+\end{document} %###################################################################################
+
+
