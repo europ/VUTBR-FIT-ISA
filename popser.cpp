@@ -887,6 +887,7 @@ void thread_main(int socket, Args* args) {
         }
         else if (res > 0) { // DATA INCOME
             time_from = time(NULL);
+            data = buff;
         }
         else if (res == 0) { // client disconnected
             close(socket);
@@ -901,26 +902,19 @@ void thread_main(int socket, Args* args) {
             return;
         }
 
-        /*
-        // TODO - we have to check this ?
-        if (strlen(buff) < 2) continue; // 0-1 chars received
-        else { // 2-N chars received
-            if (strcmp("\r\n",buff) == 0) continue; // only CRLF received
-            else {
-                data = buff;
-                if (data.substr(data.length()-2) != "\r\n") { // data without CRLF received
-                    ; // TODO
-                }
+        if (data.size() < 2) {
+            msg = "-ERR Received wrong command!\r\n";
+            TSEND(socket, msg);
+            continue;
+        }
+        else {
+            data = data.substr(0, data.size()-2); // remmove CRLF (last 2 characters)
+            if (data.empty()) { // we dont have string including "COMMAND [ARGS]"
+                msg = "-ERR Received wrong command (empty commnad)!\r\n";
+                TSEND(socket, msg);
+                continue;
             }
         }
-        */
-
-        if (strcmp("\r\n",buff) == 0) continue; // only CRLF received
-
-        data = buff;
-        data = data.substr(0, data.size()-2); // remmove CRLF (last 2 characters)
-
-        if (data.empty()) continue; // we dont have string including "COMMAND [ARGS]"
 
         load_cmd_and_args(&COMMAND, CMD_ARGS, data);
 
