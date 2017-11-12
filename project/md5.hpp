@@ -1,7 +1,7 @@
 #ifndef __md5_hpp
 #define __md5_hpp
 
-#include <string>
+#include <string> // std::string
 
 // Function creates string for MD5 hash
 std::string get_greeting_banner();

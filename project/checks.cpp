@@ -1,6 +1,6 @@
 #include "checks.hpp"
 
-#include <sys/stat.h>
+#include <sys/stat.h> // stat, stat()
 
 // Check string if it consists from numbers only
 bool is_number(const char* str) {
@@ -35,4 +35,29 @@ bool dir_exists(const std::string& path) {
     else {
         return false;
     }
+}
+
+// Function checks the structure of maildir
+void check_maildir(Args* args) {
+
+    args->path_maildir_new = args->path_maildir_cur = args->path_maildir_tmp = args->path_d; // assign path of maildir
+
+    if (args->path_d.back() == '/') { // maildir ends with SLASH
+        args->path_maildir_new.append("new");
+        args->path_maildir_cur.append("cur");
+        args->path_maildir_tmp.append("tmp");
+    }
+    else { // maildir does not end with SLASH
+        args->path_maildir_new.append("/new");
+        args->path_maildir_cur.append("/cur");
+        args->path_maildir_tmp.append("/tmp");
+    }
+
+    // NEW, CUR, TMP exists in maildir
+    if (!dir_exists(args->path_maildir_new) || !dir_exists(args->path_maildir_cur) || !dir_exists(args->path_maildir_tmp)) {
+        fprintf(stderr, "Wrong folder structure of maildir!\n");
+        exit(1);
+    }
+
+    return;
 }

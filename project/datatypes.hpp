@@ -1,6 +1,8 @@
 #ifndef __datatypes_hpp
 #define __datatypes_hpp
 
+#include <string> // std::string
+
 // enum for states
 enum State {
     AUTHORIZATION,
@@ -42,5 +44,8 @@ class Args {
         std::string path_maildir_cur = "";
         std::string path_maildir_tmp = "";
 };
+
+// Converter STRING to ENUM
+Command get_command(std::string& str);
 
 #endif

@@ -1,9 +1,11 @@
 #include "md5.hpp"
 
-#include "constants.hpp" // HOSTNAME_LENGTH
+#include <time.h>        // time()
 #include <unistd.h>      // getpid()
 #include <string.h>      // memset()
 #include <openssl/md5.h> // MD5()
+
+#include "constants.hpp" // HOSTNAME_LENGTH
 
 // Function creates string for MD5 hash
 std::string get_greeting_banner() {
