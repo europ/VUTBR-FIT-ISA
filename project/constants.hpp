@@ -7,7 +7,7 @@
 #define LOG_FILE_NAME         "log"  // name of log file
 #define DATA_FILE_NAME        "data" // name of data file
 #define DATA_FILE_DELIMITER   "/"    // delimiter used in data file
-#define ID_LENGTH             20     // unique-id length (chars)
+#define ID_LENGTH             30     // unique-id length (chars)
 #define THREAD_RECV_BUFF_SIZE 1024   // char buff[SIZE]
 
 // unique-id char set excluding slash
