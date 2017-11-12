@@ -25,21 +25,13 @@
 #include <sys/types.h>
 #include <openssl/md5.h>
 
+#include "constants.hpp"
+#include "datatypes.hpp"
+
 // DEBUG
 #define PRINT_VEC(vector) for (auto i = vector.begin(); i != vector.end(); ++i) std::cout << *i << std::endl; std::cout << std::endl;
 #define PRINT(data) std::cout << data << std::endl;
 #define ECHO() std::cout << std::endl;
-
-// CONSTANTS
-#define PORT_MAX 65535 // maximum of port number
-#define HOSTNAME_LENGTH 64 // maximum of hostname (chars)
-#define TIMEOUT_SECONDS 600 // 10 minutes
-#define LOG_FILE_NAME "log" // name of log file
-#define DATA_FILE_NAME "data" // name of data file
-#define DATA_FILE_DELIMITER "/" // delimiter used in data file
-#define ID_LENGTH 20 // unique-id length (chars)
-#define ID_CHARS "!\"#$%&'()*+,-."/*SLASH*/"0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~" // unique-id char set excluding slash
-#define THREAD_RECV_BUFF_SIZE 1024 // char buff[SIZE]
 
 // if send failed close socket, open mutex if locked, kill thread => do a "return" in thread_main (macro used only in thread_main)
 #define TSEND(s,m)                       \
@@ -56,48 +48,6 @@
 bool flag_exit = false;
 bool flag_mutex = false;
 std::mutex mutex_maildir;
-
-// enum for states
-enum State {
-    AUTHORIZATION,
-    TRANSACTION,
-    UPDATE,
-    STATE_ERROR
-};
-
-// enum for commands
-enum Command {
-    QUIT,
-    STAT,
-    LIST,
-    RETR,
-    DELE,
-    NOOP,
-    RSET,
-    UIDL,
-    USER,
-    PASS,
-    APOP,
-    COMMAND_ERROR
-};
-
-// class for options
-class Args {
-    public:
-        bool a = false;
-        bool c = false;
-        bool p = false;
-        bool d = false;
-        bool r = false;
-        std::string path_a = "";
-        std::string port   = "";
-        std::string path_d = "";
-        std::string username = "";
-        std::string password = "";
-        std::string path_maildir_new = "";
-        std::string path_maildir_cur = "";
-        std::string path_maildir_tmp = "";
-};
 
 // Print the help message to stdout and terminate the program
 void usage() {
