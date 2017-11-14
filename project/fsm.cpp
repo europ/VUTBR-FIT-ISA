@@ -1,5 +1,8 @@
 #include "fsm.hpp"
 
+//#include <iostream>
+//#include <cstdio>
+
 #include <time.h> // time()
 
 #include <string>
@@ -54,14 +57,42 @@ void load_cmd_and_args(Command* CMD, std::string& ARGS, std::string& str) {
 
 // Function sends message to client via socket
 bool thread_send(int socket, std::string& str) {
+
+    long long int char_count = str.length();
+    long long int char_sent  = 0;
+
     long long int retval;
-    retval = send(socket, str.c_str(), str.length(), 0); // send message
-    if (retval == -1) { // check whether send has succeeded
-        fprintf(stderr, "\"send()\" failed in function \"thread_send()\", socket is corrupted!\n");
-        return false; // send failed
+
+    while(true) {
+
+        retval = send(socket, str.c_str(), str.length(), 0); // send message
+
+        if (retval > 0) {
+            char_sent += retval;
+            str = str.substr(retval, str.length()-retval);
+        }
+
+        // TODO remove this
+        //std::cout << "CHAR_COUNT   = " << char_count   << std::endl;
+        //std::cout << "CHAR_SENT    = " << char_sent    << std::endl;
+        //std::cout << "std.length() = " << str.length() << std::endl;
+
+        if (char_sent == char_count) {
+            break;
+        }
+        else if (errno == EAGAIN) {
+            continue;
+        }
+        else if (retval == -1) { // check whether send has succeeded
+            fprintf(stderr, "\"send()\" failed in function \"thread_send()\", socket is corrupted!\n");
+            return false; // send failed
+        }
+
     }
+
     return true; // send succeeded
 }
+
 
 // Function provide username and md5 hash validation
 int apop_parser(int socket, Args* args, std::string& str, std::string& greeting_banner) { // TODO comment
