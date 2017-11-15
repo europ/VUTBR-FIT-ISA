@@ -51,12 +51,18 @@ void load_cmd_and_args(Command* CMD, std::string& ARGS, std::string& str) {
     return;
 }
 
-// Function sends message to client via socket
+/* Function sends message to client via socket
+ * Return value:
+ *      FALSE: send failed, false indicates closing thread, see TSEND macro
+ *      TRUE: send succeeded
+ */
 bool thread_send(int socket, std::string& str) {
 
     long long int retval;
 
     while(!str.empty()) { // while we have string to send
+
+        if (flag_exit) return false; // SIGINT
 
         retval = send(socket, str.c_str(), str.length(), 0); // send
 
