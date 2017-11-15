@@ -411,7 +411,7 @@ void thread_main(int socket, Args* args) {
                             }
                             unsigned int index = std::stoi(CMD_ARGS);
                             unsigned int WV_size = WORKING_VECTOR.size();
-                            if (0 < index && index <= WV_size) {
+                            if ((0 < index) && (index <= WV_size)) {
                                 std::string filename = WORKING_VECTOR[index-1];
                                 if (filename.empty()) {
                                     msg = "-ERR Message is already deleted!\r\n";
@@ -478,7 +478,7 @@ void thread_main(int socket, Args* args) {
                             }
                             unsigned int index = std::stoi(CMD_ARGS);
                             unsigned int WV_size = WORKING_VECTOR.size();
-                            if (0 < index && index <= WV_size) {
+                            if ((0 < index) && (index <= WV_size)) {
                                 std::string filename = WORKING_VECTOR[index-1];
                                 if (filename.empty()) {
                                     msg = "-ERR Message is already deleted!\r\n";
@@ -510,7 +510,7 @@ void thread_main(int socket, Args* args) {
                             unsigned int index = std::stoi(CMD_ARGS);
                             unsigned int WV_size = WORKING_VECTOR.size();
 
-                            if (0 < index && index <= WV_size) {
+                            if ((0 < index) && (index <= WV_size)) {
                                 std::string filename = WORKING_VECTOR[index-1];
                                 if (filename.empty()) {
                                     msg = "-ERR Message is already deleted!\r\n";
@@ -548,7 +548,7 @@ void thread_main(int socket, Args* args) {
                             }
                             unsigned int index = std::stoi(CMD_ARGS);
                             unsigned int WV_size = WORKING_VECTOR.size();
-                            if (index <= WV_size) {
+                            if ((0 < index) && (index <= WV_size)) {
                                 std::string filename = WORKING_VECTOR[index-1];
                                 if (filename.empty()) {
                                     msg = "-ERR Message is already deleted!\r\n";
