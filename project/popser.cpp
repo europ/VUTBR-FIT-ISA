@@ -25,7 +25,6 @@ std::mutex mutex_maildir;
 void signal_handler(int x) {
     (void)x; // -Wunused-parameter
     flag_exit = true;
-    exit(0);
 }
 
 // Function is the kernel of this program, set up connection and threads
@@ -58,6 +57,7 @@ void server_kernel(Args* args) {
     retval = bind(welcome_socket, (struct sockaddr*)&sa, sizeof(sa));
     if (retval < 0) {
         fprintf(stderr, "bind() failed!\n");
+        close(welcome_socket);
         exit(1);
     }
 
@@ -65,11 +65,12 @@ void server_kernel(Args* args) {
     retval = listen(welcome_socket, 2);
     if (retval < 0) {
         fprintf(stderr, "listen() failed!\n");
+        close(welcome_socket);
         exit(1);
     }
 
     // connection management
-    while(1) {
+    while(!flag_exit) {
 
         fd_set fds;
         FD_ZERO(&fds);
@@ -77,6 +78,9 @@ void server_kernel(Args* args) {
 
         // setting up select which will wait until any I/O operation can be performed
         if (select(welcome_socket + 1, &fds, NULL, NULL, NULL) == -1) {
+            if (flag_exit) {
+                break;
+            }
             fprintf(stderr, "select() failed!\n");
             continue;
         }
@@ -100,6 +104,8 @@ void server_kernel(Args* args) {
         thrd.detach();
     }
 
+    close(welcome_socket);
+    return;
 }
 
 // The Main

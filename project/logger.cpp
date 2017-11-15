@@ -144,6 +144,10 @@ std::string file_size(std::string filename) {
         size++;
     }
 
+    in.close();
+    infile.close();
+    file.close();
+
     return std::to_string(size);
 }
 
@@ -184,6 +188,8 @@ std::string get_file_content(std::string filepath) {
         // line is handled and has \r\n at the end
         str.append(line);
     }
+
+    file.close();
 
     return str;
 }
@@ -270,6 +276,7 @@ void remove_file(std::string& filename, Args* args) {
     for (auto i = vector.begin(); i != vector.end(); ++i) {
         output_file << *i << std::endl;
     }
+    output_file.close();
 
     //remove from file LOG_FILE_NAME
     content = load_file_lines_to_vector(LOG_FILE_NAME);
@@ -283,6 +290,7 @@ void remove_file(std::string& filename, Args* args) {
     for (auto i = vector.begin(); i != vector.end(); ++i) {
         output_file << *i << std::endl;
     }
+    output_file.close();
 
     //remove physically maildir/cur/filename
     std::string filepath;
@@ -295,25 +303,34 @@ std::vector<std::string> get_file_paths_in_directory(std::string dirpath) {
 
     std::vector<std::string> files;
 
+    // On success, readdir() returns a pointer to a dirent structure.
+    // This structure may be statically allocated; do not attempt to free(3) it.
     struct dirent *entry;
+
     DIR *dir = opendir(dirpath.c_str());
     if (dir == NULL) { // check directory
         return files;
     }
 
+    char* tmp;
     std::string data;
 
     while ((entry = readdir(dir)) != NULL) { // read files from directory
         data = (dirpath.back() == '/') ? dirpath + entry->d_name : dirpath + "/" + entry->d_name; // create relative path
         if (file_exists(data)) { // check file
-            data = realpath(data.c_str(), NULL); // create absolute path
+
+            // BUG: REALPATH MEMORY LEAK
+            tmp = realpath(data.c_str(), NULL); // create absolute path
+            data = tmp;
+            free(tmp);
+
             if (!data.empty()) { // file is alright
                 files.push_back(data);
             }
         }
     }
-    closedir(dir);
 
+    closedir(dir);
     return files;
 }
 
@@ -368,8 +385,6 @@ void move_new_to_curr(Args* args) {
     }
 
     logfile.close();
-
-
 
     return;
 }

@@ -9,7 +9,7 @@
 
 // Print the help message to stdout and terminate the program
 void usage() {
-    std::string message =
+    const char* message =
         "\n"
         "USAGE:\n"
         "\tHELP:\n"
@@ -23,7 +23,7 @@ void usage() {
         "\tOptional  parameters: [-c] [-r]\n"
         "\n";
 
-    fprintf(stdout, "%s", message.c_str());
+    fprintf(stdout, "%s", message);
     exit(0);
 }
 
@@ -44,6 +44,7 @@ void load_auth_file(Args* args) {
     retval = fscanf(fd,"username = %s\n", buff); // read username
     if (retval == 0) {
         fprintf(stderr, "Failed to load username from authentication file!\n");
+        fclose(fd);
         exit(1);
     }
     args->username = buff; // add username to shared class
@@ -53,6 +54,7 @@ void load_auth_file(Args* args) {
     retval = fscanf(fd,"password = %s", buff); // read password
     if (retval == 0) {
         fprintf(stderr, "Failed to load password from authentication file!\n");
+        fclose(fd);
         exit(1);
     }
     args->password = buff; // add password to shared class
