@@ -180,7 +180,6 @@ void thread_main(int socket, Args* args) {
         msg.clear();
         time_curr = time(NULL);
 
-
         // RECEIVE
         res = recv(socket, buff, THREAD_RECV_BUFF_SIZE, 0);
         if (flag_exit) { // SIGINT
@@ -270,8 +269,10 @@ void thread_main(int socket, Args* args) {
                                 if (!CMD_ARGS.empty()) { // PASS str
                                     if (!flag_WRONGUSER) {
                                         if (args->password.compare(CMD_ARGS) == 0 ) { // PASS PASSWORD
+
                                             msg = "+OK Logged in.\r\n";
                                             TSEND(socket, msg);
+
                                             if (!mutex_maildir.try_lock()) {
                                                 // RFC: If the maildrop cannot be opened for some reason, the POP3 server responds with a negative status indicator.
                                                 msg = "-ERR Maildrop is locked by someone else!\r\n";
@@ -280,6 +281,7 @@ void thread_main(int socket, Args* args) {
                                                 close(socket);
                                                 return; // kill thread
                                             }
+
                                             // TODO check maildir
                                             flag_mutex = true;
                                             STATE = TRANSACTION;
@@ -321,12 +323,14 @@ void thread_main(int socket, Args* args) {
                             else { // APOP str
 
                                 retval = apop_parser(socket, args, CMD_ARGS, GREETING_BANNER);
-                                if (retval == 1) {
-                                    break;
+                                if (retval == 1) { // wrong command
+                                    break; // switch break
                                 }
-                                else if (retval == 2) {
+                                else if (retval == 2) { // kill thread
+                                    close(socket);
                                     return;
                                 }
+
                                 msg = "+OK Logged in.\r\n";
                                 TSEND(socket, msg);
 
