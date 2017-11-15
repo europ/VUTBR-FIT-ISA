@@ -23,7 +23,7 @@
 // if send failed close socket, open mutex if locked, kill thread => do a "return" in thread_main (macro used only in thread_main)
 #define TSEND(s,m)                       \
     if (!thread_send(s,m)) {             \
-        close(socket);                   \
+        close(s);                        \
         if (flag_mutex) {                \
             mutex_maildir.unlock();      \
             flag_mutex = false;          \
