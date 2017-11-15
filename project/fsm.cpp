@@ -198,6 +198,8 @@ void thread_main(int socket, Args* args) {
         }
         else if (res == 0) { // client disconnected
             close(socket);
+            flag_mutex = false;
+            mutex_maildir.unlock();
             return; // kill thread
         }
         else if (errno == EAGAIN) { // recv would block EWOULDBLOCK
