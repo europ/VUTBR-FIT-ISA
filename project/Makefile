@@ -1,5 +1,5 @@
 CC=g++
-CFLAGS=-Wall -Wextra -pedantic -std=c++11 -pthread -lcrypto -lssl
+CFLAGS=-Wall -Wextra -pedantic -std=c++11 -pthread
 PROJECT=popser
 
 all: $(PROJECT)
@@ -26,7 +26,7 @@ $(PROJECT).o: $(PROJECT).cpp fsm.hpp md5.hpp checks.hpp argpar.hpp logger.hpp da
 	$(CC) $(CFLAGS) -c $(PROJECT).cpp -o $(PROJECT).o
 
 $(PROJECT): fsm.o md5.o checks.o argpar.o logger.o datatypes.o  $(PROJECT).o
-	$(CC) $(CFLAGS) fsm.o md5.o checks.o argpar.o logger.o datatypes.o $(PROJECT).o -o $(PROJECT)
+	$(CC) $(CFLAGS) fsm.o md5.o checks.o argpar.o logger.o datatypes.o $(PROJECT).o -lcrypto -o $(PROJECT)
 
 clean:
 	rm -f $(PROJECT) *.o
