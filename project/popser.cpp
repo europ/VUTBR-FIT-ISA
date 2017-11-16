@@ -48,6 +48,15 @@ void server_kernel(Args* args) {
         exit(1);
     }
 
+    // reuse port
+    int enable = 1;
+    if (setsockopt(welcome_socket, SOL_SOCKET, SO_REUSEADDR, &enable, sizeof(int)) <  0) { 
+        fprintf(stderr, "setsockopt(SO_REUSEADDR) failed!\n");
+        close(welcome_socket);
+        exit(1);
+    }
+
+
     memset(&sa,0,sizeof(sa));
     sa.sin6_family = AF_INET6;
     sa.sin6_addr = in6addr_any;
@@ -56,7 +65,7 @@ void server_kernel(Args* args) {
     // bind a name to a socket
     retval = bind(welcome_socket, (struct sockaddr*)&sa, sizeof(sa));
     if (retval < 0) {
-        fprintf(stderr, "bind() failed!\n");
+        fprintf(stderr, "bind() failed! Use another port!\n");
         close(welcome_socket);
         exit(1);
     }
