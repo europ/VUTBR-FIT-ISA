@@ -46,7 +46,7 @@ MAILDIR
         +-- tmp
 
 PORTNUMBER
-    Is a number in range 0 - 65535.
+    A number in range 0 - 65535.
 
 STATES
     AUTHORIZATION state
