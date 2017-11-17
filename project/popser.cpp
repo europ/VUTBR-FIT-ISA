@@ -56,11 +56,16 @@ void server_kernel(Args* args) {
         exit(1);
     }
 
-
     memset(&sa,0,sizeof(sa));
     sa.sin6_family = AF_INET6;
     sa.sin6_addr = in6addr_any;
     sa.sin6_port = htons(port_number);
+
+    if (port_number == 0) { // PORT NUMBER 0 is reserved ... yell error
+        fprintf(stderr, "bind() failed! Use another port!\n");
+        close(welcome_socket);
+        exit(1);
+    }
 
     // bind a name to a socket
     retval = bind(welcome_socket, (struct sockaddr*)&sa, sizeof(sa));
