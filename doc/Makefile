@@ -1,4 +1,4 @@
-FILE=doc
+FILE=manual
 
 make:
 	latex $(FILE).tex
@@ -7,6 +7,7 @@ make:
 	latex $(FILE).tex
 	dvips -t a4 $(FILE).dvi	
 	ps2pdf $(FILE).ps
+	cp $(FILE).pdf ../project/manual.pdf
 	make clean
 
 clean:
