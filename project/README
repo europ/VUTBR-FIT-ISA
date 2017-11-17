@@ -97,3 +97,13 @@ COMMANDS
 EXITVALUES
     0 - successful termination
     1 - failure
+
+QUIT
+    Terminate popser with signal interrupt (SIGINT).
+
+EXAMPLES
+    ./popser -h
+    ./popser -r
+    ./popser -a ~/authfile -d ~/maildir -p 55000
+    ./popser -a ~/authfile -d ~/maildir -p 55000 -c
+    ./popser -a ~/authfile -d ~/maildir -p 55000 -c -r
