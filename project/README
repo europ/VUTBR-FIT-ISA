@@ -1,0 +1,99 @@
+NAME
+    popser - POP3 server
+
+AUTHOR
+    Adrián Tóth
+
+SYNOPSIS
+    help:
+        popser -h
+
+    reset only:
+        popser -r
+
+    run:
+        popser -a authfile -d maildir -p portnumber [-c] [-r]
+
+DESCRIPTION
+    Popser is a POP3 server for Linux/UNIX-like systems. Functionality of popser is based on RFC
+    1939. Popser requirements to run are authentication file and maildir. Authentication file
+    contains username and password for user authorizing at login. Maildir is a folder which must
+    have "cur" and "new" subfolders. Maildir may have also "tmp" subfolder. Popser is working
+    with messages in maildir which have IMF format specified in RFC 5322.
+
+OPTIONS
+    -h                    Print help.
+    -r                    Server reset.
+    -a authenticationfile File path to authentication file.
+    -d maildir            Directory path to maildir.
+    -p portnumber         Port number to run.
+    -c                    Authenticate via USER and PASS command instead of APOP.
+
+AUTHENTICATION FILE
+    This file contains username and password in format:
+        username = foo
+        password = bar
+
+MAILDIR
+    This directory must have 2 subdirectories cur and tmp and it may have a third subfolder tmp.
+
+    maildir
+        |
+        +-- cur
+        |
+        +-- new
+        |
+        +-- tmp
+
+PORTNUMBER
+    Is a number in range 0 - 65535.
+
+STATES
+    AUTHORIZATION state
+        Authenticate user and lock maildir after login for this user.
+
+    TRANSACTION state
+        User can edit maildir via commands of transaction state. After a quit command is given,
+        an update of maildir is executed in update state.
+
+    UPDATE state
+        Close the connection between the server and the user and make an update of maildir.
+
+COMMANDS
+    authorization state
+        |
+        +-- QUIT
+        |
+        +-- USER name
+        |
+        +-- PASS string
+        |
+        +-- APOP name digest
+
+    transaction state
+        |
+        +-- QUIT
+        |
+        +-- NOOP
+        |
+        +-- RSET
+        |
+        +-- STAT
+        |
+        +-- LIST [msgidx]
+        |
+        +-- UIDL [msgidx]
+        |
+        +-- RETR msgidx
+        |
+        +-- DELE msgidx
+
+    update state
+
+    msgidx - a message index
+    string - a sequence of characters
+    digest - a MD5 hash string
+
+EXITVALUES
+    0 - successful termination
+    1 - failure
