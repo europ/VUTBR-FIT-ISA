@@ -61,6 +61,29 @@ Projekt vzťahuje k predmetu \textit{ISA - Sieťové aplikácie a správa sietí
 
 	K implementácii bol zvolený viacparadigmatový programovací jazyk C++ pretože umožňuje objektovo orientované programovanie. V ďalších podkapitolách bude popísaná samotná implementácia POP3 servera, ktorá popisuje projekt z hľadiska implementácie funkcionality tohto servera, t.j. ako je program delený na logické časti ktoré zaručujú určitú časť funkcionality servera a spolu nasledujúc po sebe tak zaručujú správny beh programu.
 
+	\subsection{Moduly}
+	Projekt bol rozdelený na moduly ktoré tvoria určité logické celky.
+	\begin{itemize}
+
+		\item \textit{constatns}\\[0.4em]
+			Modul obsahujúci konštanty. Tu sa nachádza aj konštanta ktorá reprezentuje znakovú sadu z ktorej sa generuje \textit{unique-id}. Podľa RFC 1939\footnote{\url{https://www.ietf.org/rfc/rfc1939.txt}} \textit{unique-id} pozostáva z ASCII znakov od 0x21 do 0x7E. Server však podporuje všetky tieto znaky okrem znaku 0x2F, t.j. znak \uv{ / }. Znak \uv{ / } sa využíva ako oddeľovací znak v logovacích súboroch. V tomto module sa nachádzajú aj konštanty určujúce veľkosti, názvy.
+
+		\item \textit{argpar}\\[0.4em]
+			Modul obsahujúci funkciu na parsovanie vstupných parametrov, funkciu na vypísanie \uv{help} správy na stdout a funkciu na načítanie prihlasovacích údajov zo súbora. Funkcia argpar v závislosti od parametrov inicializuje lokálnu premennú args v popseri. S premennou args sa často pracuje pretože obsahuje všetky informácie ktoré sú potrebné k behu programu. Premenná je objekt vytvorený z triedy Args definovaný v module datatypes.
+
+		\item \textit{checks}\\[0.4em]
+
+		\item \textit{datatypes}\\[0.4em]
+
+		\item \textit{fsm}\\[0.4em]
+
+		\item \textit{logger}\\[0.4em]
+
+		\item \textit{md5}\\[0.4em]
+
+		\item \textit{popser}\\[0.4em]
+	\end{itemize}
+
 	\subsection{Inicializácia}
 		Pri prvom spustení servera sa vytvoria pomocné globálne premenné ktoré budú riadiť beh celého procesu. Proces využíva tri globálne premenné z ktorých sú dve premenné typu \textit{bool} a zvyšná premenná typu \textit{std::mutex}.
 
