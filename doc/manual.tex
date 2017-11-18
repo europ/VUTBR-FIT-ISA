@@ -8,6 +8,8 @@
 \usepackage{times}
 \usepackage{cite}
 \usepackage{url}
+\usepackage{enumitem}
+\usepackage{indentfirst}
 \usepackage{color}
 \usepackage[unicode,colorlinks,hyperindex,plainpages=false,urlcolor=black,linkcolor=black,citecolor=black]{hyperref}
 
@@ -33,7 +35,7 @@
 	\vspace{\stretch{0.382}}
 
 	{
-		\LARGE Síťové aplikace a správa sítí\\[0.4em]
+		\LARGE Sieťové aplikácie a správa sietí\\[0.4em]
 		\Huge POP3 server
 	}
 
@@ -55,37 +57,56 @@
 \newpage %#########################################################################################
 
 \section{Úvod}
-Projekt vzťahuje k predmetu \textit{ISA - Sieťové aplikácie a správa sietí}\footnote{\url{https://www.fit.vutbr.cz/study/courses/index.php.en?id=12191}}, kde sme dostali za úlohu naimplementovat \textbf{\textit{POP3 server}}, ďalej označovaný ako \textit{server}. Server je naimplementovaný podľa RFC 1939\footnote{\url{https://www.ietf.org/rfc/rfc1939.txt}} ktorý využíva \textit{BSD sockets} na komunikáciu. Server pracuje so súbormi v jednom priečinku ktorý sa nazýva maildir. Maildir je priečinok ktorý obsahuje ďalšie podpriečinky \textit{new}, \textit{cur} a \textit{tmp}. Všetky súbory v priečinku maildir by mali byť vo formáte IMF podľa RFC 5322\footnote{\url{https://tools.ietf.org/html/rfc5322}}. Server využíva okrem maildiru ešte jeden súbor a to kvôli autentifikácii užívateľa v ktorom sú uložené prihlasovacie údaje.
+Projekt sa vzťahuje k predmetu \textit{ISA - Sieťové aplikácie a správa sietí}, kde je úlohou naimplementovať \textbf{\textit{POP3 server}}, ďalej označovaný ako \textit{server}. Server je naimplementovaný podľa RFC 1939 ktorý využíva \textit{BSD sockets} na komunikáciu. Server pracuje so súbormi v jednom priečinku, ktorý sa nazýva maildir. Maildir je priečinok, ktorý obsahuje ďalšie podpriečinky \textit{new}, \textit{cur} a \textit{tmp}. Všetky súbory v priečinku maildir by mali byť vo formáte IMF podľa RFC 5322. Server využíva okrem maildiru ešte jeden súbor a to kvôli autentifikácii užívateľa v ktorom sú uložené prihlasovacie údaje.
 
-\section{Popis implementácie}
+\section{Pojmy}
 
-	K implementácii bol zvolený viacparadigmatový programovací jazyk C++ pretože umožňuje objektovo orientované programovanie. V ďalších podkapitolách bude popísaná samotná implementácia POP3 servera, ktorá popisuje projekt z hľadiska implementácie funkcionality tohto servera, t.j. ako je program delený na logické časti ktoré zaručujú určitú časť funkcionality servera a spolu nasledujúc po sebe tak zaručujú správny beh programu.
+\subsection{Maildir}
+Maildir označuje priečinok ktorý server využíva k svojmu behu. Maildir je zadaný hneď pri spustení po parametri \uv{-d} a to cestou ku priečinku. Priečinok môže byť zadaný absolútnou cestou alebo relatívnou. Maildir slúži na ukladanie správ (súborov) užívateľa do podpriečinkov podľa určitých kritérii. Maildir obsahuje podpriečinky \textit{cur}, \textit{new} a \textit{tmp}. Súbory sa nachádzajú v podpriečinku new, ak sú označené ako nová správa. Po pripojení klienta sa presunú do podpriečinku cur. Priečinok cur obsahuje všetky správy, ktoré boli najskôr v priečinku new ale po pripojení klienta sa presunuli do tohto priečinka. Odstránenie správ z priečinka cur je záležitosť klienta. Priečinok tmp slúži ako dočasné úložisko pre server.
+
+\subsection{IMF}
+Internet Message Format v skratke IMF definuje formát správy ako je uložená v súbore. Definuje správu ako sekvenciu znakov tvoriace riadky, ktoré sú ukončené s dvoma znakmi a to carriage-return a line-feed. Carriage-return označovaný ako CR je znak \uv{\textbackslash r} a line-feed označovaný ako LF je znak \uv{\textbackslash n}. Takže správa je vlastne množina riadkov, ktoré sú sekvencia po sebe idúcich znakov, kde každý riadok je ukončený s dvoma znakmi CRLF.
+
+\subsection{POP3 Server}
+ASd.
+
+\section{Návrh a implementáciaô}
+
+	K implementácii bol zvolený viacparadigmatový programovací jazyk C++, pretože umožňuje objektovo orientované programovanie. V ďalších podkapitolách bude popísaná samotná implementácia POP3 servera, ktorá popisuje projekt z hľadiska implementácie funkcionality tohto servera, t.j. ako je program delený na logické časti, ktoré zaručujú určitú časť funkcionality servera a spolu nasledujúc po sebe tak zaručujú správny beh programu.
 
 	\subsection{Moduly}
-	Projekt bol rozdelený na moduly ktoré tvoria určité logické celky.
-	\begin{itemize}
+		Projekt bol rozdelený na moduly, ktoré tvoria určité logické celky.
 
-		\item \textit{constatns}\\[0.4em]
-			Modul obsahujúci konštanty. Tu sa nachádza aj konštanta ktorá reprezentuje znakovú sadu z ktorej sa generuje \textit{unique-id}. Podľa RFC 1939\footnote{\url{https://www.ietf.org/rfc/rfc1939.txt}} \textit{unique-id} pozostáva z ASCII znakov od 0x21 do 0x7E. Server však podporuje všetky tieto znaky okrem znaku 0x2F, t.j. znak \uv{ / }. Znak \uv{ / } sa využíva ako oddeľovací znak v logovacích súboroch. V tomto module sa nachádzajú aj konštanty určujúce veľkosti, názvy.
+		\begin{itemize}
 
-		\item \textit{argpar}\\[0.4em]
-			Modul obsahujúci funkciu na parsovanie vstupných parametrov, funkciu na vypísanie \uv{help} správy na stdout a funkciu na načítanie prihlasovacích údajov zo súbora. Funkcia argpar v závislosti od parametrov inicializuje lokálnu premennú args v popseri. S premennou args sa často pracuje pretože obsahuje všetky informácie ktoré sú potrebné k behu programu. Premenná je objekt vytvorený z triedy Args definovaný v module datatypes.
+			\item \textit{constatns}\\[0.4em]
+				Modul obsahujúci konštanty. Tu sa nachádza aj konštanta, ktorá reprezentuje znakovú sadu z ktorej sa generuje \textit{unique-id}. Podľa RFC 1939 \textit{unique-id} pozostáva z ASCII znakov od 0x21 do 0x7E. Server však podporuje všetky tieto znaky, okrem znaku 0x2F, t.j. znak \uv{ / }. Znak \uv{ / } sa využíva ako oddeľovací znak v logovacích súboroch. V tomto module sa nachádzajú aj konštanty určujúce veľkosti, názvy.
 
-		\item \textit{checks}\\[0.4em]
+			\item \textit{argpar}\\[0.4em]
+				Modul obsahujúci funkciu na parsovanie vstupných parametrov, funkciu na vypísanie \uv{help} správy na stdout a funkciu na načítanie prihlasovacích údajov zo súbora. Funkcia argpar v závislosti od parametrov inicializuje lokálnu premennú args v popseri. S premennou args sa často pracuje, pretože obsahuje všetky informácie, ktoré sú potrebné k behu programu. Premenná je objekt vytvorený z triedy Args definovaný v module datatypes.
 
-		\item \textit{datatypes}\\[0.4em]
+			\item \textit{checks}\\[0.4em]
+				Modul obsahujúci funkcie, ktoré slúžia na kontrolu im predaných parametrov.
 
-		\item \textit{fsm}\\[0.4em]
+			\item \textit{datatypes}\\[0.4em]
+				Modul obsahujúci mnou definované enumeračné premenné, triedu Args spomenutú v predošlom bode \uv{\textit{argpar}} a ešte jednu funkciu. Enumeračné premenné sa používajú v automate, kde označujú stav alebo príkaz, ktorý sa nachádza v module fsm. Trieda Args slúži na posun informácii medzi funkciami pričom je inicializovaná hned na začiatku spustenia programu funkciou argpar. Funkcia, ktorá sa nachádza v tomtot module slúži na transformáciu vstupného reťazca na výstupný k nemu vzťahujúcu sa enumeračnú hodnotu typu Command.
 
-		\item \textit{logger}\\[0.4em]
+			\item \textit{fsm}\\[0.4em]
+				Modul nazýva ako \uv{finite-state machine}, skrátene fsm, obsahuje samotnú implementáciu konečného automatu podľa RFC 1939. Modul reprezentuje funkcionalitu jedného vytvoreného vlákna, ktoré obsluhuje napojeného klienta. Obsluha klienta je naimplementovaná ako konečný automat vo funkcii \uv{thread\_main}. V tejto funkcii sa nachádza všetko potrebné, aby sa správne obslúžil pripojený klient, odpojil a aby sa vykonali ním požadujúce zmeny. Taktiež sa tu nachádzajú funkcie, ktoré vypomáhajú konečnému automatu.
 
-		\item \textit{md5}\\[0.4em]
+			\item \textit{logger}\\[0.4em]
+				Modul obsahujúci všetky ostatné funkcie, ktoré sú prevažne volané z fsm a z argpar. Nachádzajú sa tu funkcie ktoré vykonávajú logovanie informácii do súboru a prácu nad týmito informáciami. Taktiež sa tu nachádza funkcia reset.
 
-		\item \textit{popser}\\[0.4em]
-	\end{itemize}
+			\item \textit{md5}\\[0.4em]
+				Modul ktorý obsahuje oddelenú časť zodpovednej za generovanie MD5 hashu pre príkaz APOP. Tento hash sa generuje zo špecifického typu reťazca, ktorý sa nazýva podľa RFC 1939 ako \uv{greeting banner}. Zodpovedná funkcia na generovanie tohto reťazca sa tu tiež nachádza.
+
+			\item \textit{popser}\\[0.4em]
+				Hlavná časť programu, kde sa volajú všetky ostatné moduly. Tu sa nachádza aj hlavná funkcia \uv{main}. V tejto časti, po spracovaní parametrov, sa vytvorí komunikácia a pri úspešnom pripojení klienta sa vytvorí vlákno, ktorému je predaná funkcia \uv{thread\_main} a soket na ktorom sa pripojil klient. Taktiež sa tu nachádza odchytávanie signálu SIGINT, čo má za následok správne ukončenie celého servera.
+
+		\end{itemize}
 
 	\subsection{Inicializácia}
-		Pri prvom spustení servera sa vytvoria pomocné globálne premenné ktoré budú riadiť beh celého procesu. Proces využíva tri globálne premenné z ktorých sú dve premenné typu \textit{bool} a zvyšná premenná typu \textit{std::mutex}.
+		Pri prvom spustení servera sa vytvoria pomocné globálne premenné, ktoré budú riadiť beh celého procesu. Proces využíva tri globálne premenné z ktorých sú dve premenné typu \textit{bool} a zvyšná premenná typu \textit{std::mutex}.
 
 	\subsection{Spracovanie parametrov}
 	\subsection{Vytvorenie komunikačného soketu}
@@ -93,6 +114,16 @@ Projekt vzťahuje k predmetu \textit{ISA - Sieťové aplikácie a správa sietí
 	\subsection{Prihlásenie používateľa a obsluha}
 	\subsection{Odhlásenie používateľa a aktualizácia maildiru}
 	\subsection{Vynútené ukončenie servera}
+
+\newpage %#########################################################################################
+
+\section{Zdroje}
+\begin{enumerate}[label={[\arabic*]}]
+	\item RFC 1939 \href{https://tools.ietf.org/html/rfc1939.txt}{tools.ietf.org/html/rfc1939.txt}
+	\item RFC 5322 \href{https://tools.ietf.org/html/rfc5322.txt}{tools.ietf.org/html/rfc5322.txt}
+	\item Post Office Protocol \href{https://en.wikipedia.org/wiki/Post_Office_Protocol}{en.wikipedia.org/wiki/Post\_Office\_Protocol}
+	\item Maildir \href{https://cr.yp.to/proto/maildir.html}{cr.yp.to/proto/maildir.html}
+\end{enumerate}
 
 \end{document} %###################################################################################
 
