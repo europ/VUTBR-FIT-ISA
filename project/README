@@ -5,6 +5,47 @@ AUTHOR
     Adrián Tóth
     xtotha01@stud.fit.vutbr.cz
 
+EXTENSIONS
+    none
+
+RESTRICTIONS
+    none
+
+FILES
+    constants.hpp
+
+    datatypes.cpp
+    datatypes.hpp
+
+    argpar.cpp
+    argpar.hpp
+
+    checks.cpp
+    checks.hpp
+
+    fsm.cpp
+    fsm.hpp
+
+    logger.cpp
+    logger.hpp
+
+    md5.cpp
+    md5.hpp
+
+    popser.cpp
+
+    Makefile
+
+    manual.pdf
+    README
+
+DESCRIPTION
+    Popser is a POP3 server for Linux/UNIX-like systems. Functionality of popser is based on RFC
+    1939. Popser requirements to run are authentication file and maildir. Authentication file
+    contains username and password for user authorizing at login. Maildir is a folder which must
+    have "cur" and "new" subfolders. Maildir may have also "tmp" subfolder. Popser is working
+    with messages in maildir which have IMF format specified in RFC 5322.
+
 SYNOPSIS
     help:
         popser -h
@@ -14,13 +55,6 @@ SYNOPSIS
 
     run:
         popser -a authfile -d maildir -p portnumber [-c] [-r]
-
-DESCRIPTION
-    Popser is a POP3 server for Linux/UNIX-like systems. Functionality of popser is based on RFC
-    1939. Popser requirements to run are authentication file and maildir. Authentication file
-    contains username and password for user authorizing at login. Maildir is a folder which must
-    have "cur" and "new" subfolders. Maildir may have also "tmp" subfolder. Popser is working
-    with messages in maildir which have IMF format specified in RFC 5322.
 
 OPTIONS
     -h                    Print help.
