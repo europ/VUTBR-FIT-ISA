@@ -136,6 +136,12 @@ EXITVALUES
 QUIT
     Terminate popser with signal interrupt (SIGINT).
 
+COMPILATION
+    execute "make" command from Makefile
+
+CLEANING
+    execute "make clean" command from Makefile
+
 EXAMPLES
     Help:
     ./popser -h
