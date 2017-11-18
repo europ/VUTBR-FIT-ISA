@@ -12,32 +12,34 @@ RESTRICTIONS
     none
 
 FILES
-    constants.hpp
-
-    datatypes.cpp
-    datatypes.hpp
-
-    argpar.cpp
-    argpar.hpp
-
-    checks.cpp
-    checks.hpp
-
-    fsm.cpp
-    fsm.hpp
-
-    logger.cpp
-    logger.hpp
-
-    md5.cpp
-    md5.hpp
-
-    popser.cpp
-
-    Makefile
-
-    manual.pdf
-    README
+    .
+    |
+    +-- constants.hpp
+    |
+    +-- datatypes.cpp
+    +-- datatypes.hpp
+    |
+    +-- argpar.cpp
+    +-- argpar.hpp
+    |
+    +-- checks.cpp
+    +-- checks.hpp
+    |
+    +-- fsm.cpp
+    +-- fsm.hpp
+    |
+    +-- logger.cpp
+    +-- logger.hpp
+    |
+    +-- md5.cpp
+    +-- md5.hpp
+    |
+    +-- popser.cpp
+    |
+    +-- Makefile
+    |
+    +-- manual.pdf
+    +-- README
 
 DESCRIPTION
     Popser is a POP3 server for Linux/UNIX-like systems. Functionality of popser is based on RFC
