@@ -103,8 +103,20 @@ QUIT
     Terminate popser with signal interrupt (SIGINT).
 
 EXAMPLES
+    Help:
     ./popser -h
+
+    Reset:
     ./popser -r
+
+    Run (authorize user via APOP):
     ./popser -a /foo/bar/authfile -d /foo/bar/maildir -p 55000
+
+    Reset and run (authorize user via APOP):
+    ./popser -a /foo/bar/authfile -d /foo/bar/maildir -p 55000 -r
+
+    Run (authorize user via USER and PASS):
     ./popser -a /foo/bar/authfile -d /foo/bar/maildir -p 55000 -c
+
+    Reset and run (authorize user via USER and PASS):
     ./popser -a /foo/bar/authfile -d /foo/bar/maildir -p 55000 -c -r
