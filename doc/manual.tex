@@ -54,20 +54,22 @@
 
 \newpage %#########################################################################################
 
-\section{Asdf}
-Lorem ipsum dolor sit amet, consectetur adipiscing elit. Pellentesque ut pretium metus. Sed viverra consectetur orci vel luctus. Suspendisse ullamcorper gravida nisi eu suscipit. Suspendisse potenti. Maecenas sollicitudin in sem a consectetur. Etiam tristique est sed ex sollicitudin tincidunt. Mauris eget lacinia ligula. Aliquam erat volutpat. Praesent tincidunt purus sit amet eleifend accumsan. Morbi ultricies tempus nisl eu feugiat. Pellentesque vel turpis eget enim ultricies venenatis. 
+\section{Úvod}
+Projekt vzťahuje k predmetu \textit{ISA - Sieťové aplikácie a správa sietí}\footnote{\url{https://www.fit.vutbr.cz/study/courses/index.php.en?id=12191}}, kde sme dostali za úlohu naimplementovat \textbf{\textit{POP3 server}}, ďalej označovaný ako \textit{server}. Server je naimplementovaný podľa RFC 1939\footnote{\url{https://www.ietf.org/rfc/rfc1939.txt}} ktorý využíva \textit{BSD sockets} na komunikáciu. Server pracuje so súbormi v jednom priečinku ktorý sa nazýva maildir. Maildir je priečinok ktorý obsahuje ďalšie podpriečinky \textit{new}, \textit{cur} a \textit{tmp}. Všetky súbory v priečinku maildir by mali byť vo formáte IMF podľa RFC 5322\footnote{\url{https://tools.ietf.org/html/rfc5322}}. Server využíva okrem maildiru ešte jeden súbor a to kvôli autentifikácii užívateľa v ktorom sú uložené prihlasovacie údaje.
 
-\section{Qwerty}
-Lorem ipsum dolor sit amet, consectetur adipiscing elit\cite{Xyz}. Pellentesque ut pretium metus. Sed viverra consectetur orci vel luctus. Suspendisse ullamcorper gravida nisi eu suscipit. Suspendisse potenti. Maecenas sollicitudin in sem a consectetur. Etiam tristique est sed ex sollicitudin tincidunt. Mauris eget lacinia ligula. Aliquam erat volutpat. Praesent tincidunt purus sit amet eleifend accumsan. Morbi ultricies tempus nisl eu feugiat. Pellentesque vel turpis eget enim ultricies venenatis.
+\section{Popis implementácie}
 
-\newpage %#########################################################################################
+	K implementácii bol zvolený viacparadigmatový programovací jazyk C++ pretože umožňuje objektovo orientované programovanie. V ďalších podkapitolách bude popísaná samotná implementácia POP3 servera, ktorá popisuje projekt z hľadiska implementácie funkcionality tohto servera, t.j. ako je program delený na logické časti ktoré zaručujú určitú časť funkcionality servera a spolu nasledujúc po sebe tak zaručujú správny beh programu.
 
-\makeatletter
-\makeatother
-\bibliographystyle{czechiso}
-\begin{flushleft}
-	\bibliography{quotation}
-\end{flushleft}
+	\subsection{Inicializácia}
+		Pri prvom spustení servera sa vytvoria pomocné globálne premenné ktoré budú riadiť beh celého procesu. Proces využíva tri globálne premenné z ktorých sú dve premenné typu \textit{bool} a zvyšná premenná typu \textit{std::mutex}.
+
+	\subsection{Spracovanie parametrov}
+	\subsection{Vytvorenie komunikačného soketu}
+	\subsection{Naviazanie spojenia a obsluha}
+	\subsection{Prihlásenie používateľa a obsluha}
+	\subsection{Odhlásenie používateľa a aktualizácia maildiru}
+	\subsection{Vynútené ukončenie servera}
 
 \end{document} %###################################################################################
 

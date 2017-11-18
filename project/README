@@ -3,6 +3,7 @@ NAME
 
 AUTHOR
     Adrián Tóth
+    xtotha01@stud.fit.vutbr.cz
 
 SYNOPSIS
     help:
@@ -104,6 +105,6 @@ QUIT
 EXAMPLES
     ./popser -h
     ./popser -r
-    ./popser -a ~/authfile -d ~/maildir -p 55000
-    ./popser -a ~/authfile -d ~/maildir -p 55000 -c
-    ./popser -a ~/authfile -d ~/maildir -p 55000 -c -r
+    ./popser -a /foo/bar/authfile -d /foo/bar/maildir -p 55000
+    ./popser -a /foo/bar/authfile -d /foo/bar/maildir -p 55000 -c
+    ./popser -a /foo/bar/authfile -d /foo/bar/maildir -p 55000 -c -r
