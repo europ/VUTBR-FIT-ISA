@@ -29,10 +29,10 @@ $(PROJECT): fsm.o md5.o checks.o argpar.o logger.o datatypes.o  $(PROJECT).o
 	$(CC) $(CFLAGS) fsm.o md5.o checks.o argpar.o logger.o datatypes.o $(PROJECT).o -lcrypto -o $(PROJECT)
 
 clean:
-	rm -f $(PROJECT) *.o
+	rm -f $(PROJECT) *.o xtotha01.tar
 
 clean-o:
 	rm -f *.o
 
-tar:
+tar: clean
 	tar -cvf xtotha01.tar *
