@@ -43,6 +43,12 @@
         return;                                                     \
     }                                                                          
 
+#define CHECK_NUM_SIZE(number_in_string,socket,message) \
+    if (number_in_string.size() > 9) {                  \
+        message = "-ERR Number is too big!\r\n";        \
+        TSEND(socket, message);                         \
+        break;                                          \
+    }
 
 // GLOBAL VARIABLES defined in popser.cpp
 extern bool flag_exit;
@@ -447,6 +453,9 @@ void thread_main(int socket, Args* args) {
                                 TSEND(socket, msg);
                                 break;
                             }
+
+                            CHECK_NUM_SIZE(CMD_ARGS,socket,msg);
+
                             unsigned int index = std::stoi(CMD_ARGS);
                             unsigned int WV_size = WORKING_VECTOR.size();
                             if ((0 < index) && (index <= WV_size)) {
@@ -514,6 +523,9 @@ void thread_main(int socket, Args* args) {
                                 TSEND(socket, msg);
                                 break;
                             }
+
+                            CHECK_NUM_SIZE(CMD_ARGS,socket,msg);
+
                             unsigned int index = std::stoi(CMD_ARGS);
                             unsigned int WV_size = WORKING_VECTOR.size();
                             if ((0 < index) && (index <= WV_size)) {
@@ -544,6 +556,8 @@ void thread_main(int socket, Args* args) {
                                 TSEND(socket, msg);
                                 break;
                             }
+
+                            CHECK_NUM_SIZE(CMD_ARGS,socket,msg);
 
                             unsigned int index = std::stoi(CMD_ARGS);
                             unsigned int WV_size = WORKING_VECTOR.size();
@@ -584,6 +598,9 @@ void thread_main(int socket, Args* args) {
                                 TSEND(socket, msg);
                                 break;
                             }
+
+                            CHECK_NUM_SIZE(CMD_ARGS,socket,msg);
+
                             unsigned int index = std::stoi(CMD_ARGS);
                             unsigned int WV_size = WORKING_VECTOR.size();
                             if ((0 < index) && (index <= WV_size)) {
