@@ -2,7 +2,7 @@ FILE=manual
 
 make:
 	latex $(FILE).tex
-	#bibtex $(FILE)
+	bibtex $(FILE)
 	latex $(FILE).tex
 	latex $(FILE).tex
 	dvips -t a4 $(FILE).dvi	
