@@ -146,6 +146,7 @@ void thread_main(int socket, Args* args) {
     Command COMMAND;
     std::string msg;
     std::string data;
+    std::string data_ending;
     std::string CMD_ARGS;
     std::string GREETING_BANNER;
     std::vector<std::string> WORKING_VECTOR;
@@ -180,6 +181,7 @@ void thread_main(int socket, Args* args) {
         // RESET
         memset(&buff,0,sizeof(buff));
         CMD_ARGS.clear();
+        data_ending.clear();
         data.clear();
         msg.clear();
         time_curr = time(NULL);
@@ -215,15 +217,25 @@ void thread_main(int socket, Args* args) {
             return;
         }
 
+        // CRLF message ending
+        // All commands are terminated by a CRLF pair.
         if (data.size() < 2) {
-            msg = "-ERR Received wrong command!\r\n";
+            msg = "-ERR Received wrong command (message.size() < 2, unable to check for CRLF message ending)!\r\n";
             TSEND(socket, msg);
             continue;
         }
         else {
-            data = data.substr(0, data.size()-2); // remmove CRLF (last 2 characters)
-            if (data.empty()) { // we dont have string including "COMMAND [ARGS]"
-                msg = "-ERR Received wrong command (empty commnad)!\r\n";
+            data_ending = data.substr(data.size()-2, 2);
+            if (data_ending.compare("\r\n") == 0) {
+                data = data.substr(0, data.size()-2); // remmove CRLF (last 2 characters)
+                if (data.empty()) { // we dont have string including "COMMAND [ARGS]"
+                    msg = "-ERR Received wrong command (empty commnad)!\r\n";
+                    TSEND(socket, msg);
+                    continue;
+                }
+            }
+            else {
+                msg = "-ERR Received wrong command (message is not terminated with CRLF)!\r\n";
                 TSEND(socket, msg);
                 continue;
             }
