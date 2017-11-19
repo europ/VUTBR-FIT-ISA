@@ -33,3 +33,6 @@ clean:
 
 clean-o:
 	rm -f *.o
+
+tar:
+	tar -cvf xtotha01.tar *
