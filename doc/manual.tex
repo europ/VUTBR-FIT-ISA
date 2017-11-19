@@ -84,7 +84,7 @@
 
 \section{Návrh a implementácia}
 
-	\indent K implementácii bol zvolený viacparadigmatový programovací jazyk C++, pretože umožňuje objektovo orientované programovanie. V ďalších podkapitolách bude popísaná samotná implementácia POP3 servera, ktorá popisuje projekt z hľadiska implementácie funkcionality tohto servera, t.j. ako je program delený na logické časti, ktoré zaručujú určitú časť funkcionality servera a spolu nasledujúc po sebe tak zaručujú správny beh programu.
+	\indent K implementácii bol zvolený viacparadigmový programovací jazyk C++, pretože umožňuje objektovo orientované programovanie. V ďalších podkapitolách bude popísaná samotná implementácia POP3 servera, ktorá popisuje projekt z hľadiska implementácie funkcionality tohto servera, t.j. ako je program delený na logické časti, ktoré zaručujú určitú časť funkcionality servera a spolu nasledujúc po sebe tak zaručujú správny beh programu.
 
 	\subsection{Moduly}
 		
@@ -103,7 +103,7 @@
 				Modul obsahujúci funkcie, ktoré slúžia na kontrolu im predaných parametrov.
 
 			\item \textit{datatypes}\\[0.4em]
-				Modul obsahujúci mnou definované enumeračné premenné, triedu Args spomenutú v predošlom bode \uv{\textit{argpar}} a ešte jednu funkciu. Enumeračné premenné sa používajú v automate, kde označujú stav alebo príkaz, ktorý sa nachádza v module fsm. Trieda Args slúži na posun informácii medzi funkciami pričom je inicializovaná hned na začiatku spustenia programu funkciou argpar. Funkcia, ktorá sa nachádza v tomtot module slúži na transformáciu vstupného reťazca na výstupný k nemu vzťahujúcu sa enumeračnú hodnotu typu Command.
+				Modul obsahujúci mnou definované enumeračné premenné, triedu Args spomenutú v predošlom bode \uv{\textit{argpar}} a ešte jednu funkciu. Enumeračné premenné sa používajú v automate, kde označujú stav alebo príkaz, ktorý sa nachádza v module fsm. Trieda Args slúži na posun informácii medzi funkciami pričom je inicializovaná hned na začiatku spustenia programu funkciou argpar. Funkcia, ktorá sa nachádza v tomto module slúži na transformáciu vstupného reťazca na výstupnú enumeračnú hodnotu typu Command.
 
 			\item \textit{fsm}\\[0.4em]
 				Modul nazýva ako \uv{finite-state machine}, skrátene fsm, obsahuje samotnú implementáciu konečného automatu podľa RFC 1939. Modul reprezentuje funkcionalitu jedného vytvoreného vlákna, ktoré obsluhuje napojeného klienta. Obsluha klienta je naimplementovaná ako konečný automat vo funkcii \uv{thread\_main}. V tejto funkcii sa nachádza všetko potrebné, aby sa správne obslúžil pripojený klient, odpojil a aby sa vykonali ním požadujúce zmeny. Taktiež sa tu nachádzajú funkcie, ktoré vypomáhajú konečnému automatu.
@@ -125,8 +125,8 @@
 		\indent Po spracovaní parametrov nasleduje vytvorenie paralelného neblokujúceho soketu. Táto časť je naimplementovaná vo funkcii \textit{server\_kernel}. Táto funkcia vytvorí soket, nastaví soket, a ak sa klient pripojí tak vytvorí vlákno zodpovedný za obslúšenie klienta a predá mu príslušný soket.
 
 	\subsection{Obsluha klienta zodpovedným vláknom}
-		\indent V tejto časti spočíva jadro celého popsera. Základná funkcionalita ktorá je popísana v kapitole \ref{fig:pop3} a znázornená v prílohe na obrázku číslo \ref{IMG-FSM} je v tejto časti. Táto funkcionalita je naimplementovaná vo funkcii \uv{thread\_main} ktorá sa nachádza v module \uv{fsm}. Pri naviazaní spojenia sa vytvorí thread a je mu predaný soket a táto funkcia. V tejto funkcii je naimplementovaný konečný automat pomocou jedného hlavného \textit{switch-case} príkazu určeného na stavy automatu ktorý v každom jednotlivom stave obsahuje jeden \textit{switch-case} príkaz ktorý je určený na príkazy v stave. Obsluha klienta sa tak odohráva v počiatočnom stave \textit{authorization}, v ktorom sa čaká na autentifikáciu pomocou príkazu APOP alebo USER a PASS. Prepínač \uv{-c} určuje ktorá metóda autentifikácie sa vyžaduje. Po úspešnom pripojení klienta sa presunie obsah podpriečinka \uv{new} do \uv{cur}, a klient môže pracovať so svojimi správami. Po odhlásení klienta pomocou príkazu QUIT sa server dostane do stavu \textit{update} kde vykoná zmeny, ukončí spojenie, odomkne maildir a ukončí thread ktorý obsluhoval tohto klienta.\\[0.4em]
-		\indent Klient je obsluhovaný serverom až kým nevyprší timeout, t.j. čas 10 minút. Po vypršaní 10 minú je klient automaticky odpojený, všetky jeho zmeny anulované a priečinok maildir odomknutý.
+		\indent V tejto časti spočíva jadro celého POP3 servera. Základná funkcionalita ktorá je popísana v kapitole \ref{fig:pop3} a znázornená v prílohe na obrázku číslo \ref{IMG-FSM} je v tejto časti. Táto funkcionalita je naimplementovaná vo funkcii \uv{thread\_main} ktorá sa nachádza v module \uv{fsm}. Pri naviazaní spojenia sa vytvorí thread a je mu predaný soket a táto funkcia. V tejto funkcii je naimplementovaný konečný automat pomocou jedného hlavného \textit{switch-case} príkazu určeného na stavy automatu ktorý v každom jednotlivom stave obsahuje jeden \textit{switch-case} príkaz ktorý je určený na príkazy v stave. Obsluha klienta sa tak odohráva v počiatočnom stave \textit{authorization}, v ktorom sa čaká na autentifikáciu pomocou príkazu APOP alebo USER a PASS. Prepínač \uv{-c} určuje ktorá metóda autentifikácie sa vyžaduje. Po úspešnom pripojení klienta sa presunie obsah podpriečinka \uv{new} do \uv{cur}, a klient môže pracovať so svojimi správami. Po odhlásení klienta pomocou príkazu QUIT sa server dostane do stavu \textit{update} kde vykoná zmeny, ukončí spojenie, odomkne maildir a ukončí thread ktorý obsluhoval tohto klienta.\\[0.4em]
+		\indent Klient je obsluhovaný serverom až kým nevyprší timeout, t.j. čas 10 minút. Po vypršaní 10 minút je klient automaticky odpojený, všetky jeho zmeny anulované a priečinok maildir odomknutý.
 
 	\subsection{Vynútené ukončenie servera pomocou SIGINT}
 		\indent Pri spustení servera sa spustí funkcia \textit{std::signal} ktorá odchytáva singal interrupt. Pri jeho chytení sa hodnota globálnej premennej \textit{flag\_exit} nastaví na \textit{true} čo spôsobí korektné ukončenie servera, t.j. ukončenie všetkých vlákien a uzatvorenie všetkých spojení.
@@ -137,16 +137,16 @@
 		\indent Druhý súbor nazývaný \uv{data} je vytvorený kvôli obmedzenému počtu prístupu k správe. Pri presune súborov z \textit{new} do \textit{cur} sa vytvorí pre každý súbor \uv{unique-id} popísaný v kapitole \ref{fig:uid} v module \textit{constatns}. Taktiež sa tu získa veľkosť správy a tá sa prepočíta vzhľadom ku ukončeniu riadkov. Tieto informácie sa následne uložia do logovacie súbora \uv{data} a to vo formáte \textit{[filename][/][unique-id][/][filesize]}.
 
 	\subsection{MD5 hash}
-		\indent POP3 server na to aby mohol využívať autentifikáciu klienta pomocou zdielaného tajného kľúča bolo nutné naimplementovať MD5 hashovaciu funkciu.\\[0.4em]
+		\indent Implementácia MD5 hashovacej funkcie slúži na to, aby POP3 server mohol využívať autentifikáciu klienta pomocou zdielaného tajného kľúča\\[0.4em]
 		\indent Pri pripojení klienta server automaticky odošle reťazec nazývaný ako \textit{greeting banner}, ktorý je vygenerovaný pre každého klienta osobitne. Tento \textit{greeting banner} je reťazec vo forme:
 		\begin{center}
 		\textit{[<][PID][.][TIME][@][HOSTNAME][>]}\\[0.4em]
 		\end{center}
-		\textit{Greeting banner} sa uloží dočastne na serveri a odošle sa klientovi pri pripojení. Klient musí využiť tento \textit{greeting banner} v prípade prihlásenia za pomoci príkazu APOP, a to pridaním hesla priamo za tento \textit{greeting banner} a zahashovaním tohto reťazca. Hash tohto reťazca (\textit{greeting banner} + heslo) sa nazýva \textit{digest} ktorý má formu:
+		\textit{Greeting banner} sa uloží dočasne na serveri a odošle sa klientovi pri pripojení. Klient musí využiť tento \textit{greeting banner} v prípade prihlásenia za pomoci príkazu APOP, a to pridaním hesla priamo za tento \textit{greeting banner} a zahashovaním tohto reťazca. Hash tohto reťazca (\textit{greeting banner} + heslo) sa nazýva \textit{digest} ktorý má formu:
 		\begin{center}
 		\textit{[<][PID][.][TIME][@][HOSTNAME][>][PASSWORD]}
 		\end{center}
-		Klient môže odoslať príkaz APOP spolu s menom a \textit{digest}. Server prijatú správu overí zda ním vygenerovaný hash je rovnaký ako prijatý. Server pozná heslo ktoré očakáva a aj \textit{greeting banner} takže si môže vygenerovať hash na porovnanie prijatého hashu. Ak sa prijatý a aj vygenerovaný hash rovnajú a súčastne sa jedná o správny \textit{username}, server môže prehlásiť že prihlásenie klienta prebehlo úspešne.
+		Klient môže odoslať príkaz APOP spolu s menom a \textit{digest}. Server prijatú správu overí, že ním vygenerovaný hash je rovnaký ako prijatý. Server pozná heslo ktoré očakáva a aj \textit{greeting banner} takže si môže vygenerovať hash na porovnanie prijatého hashu. Ak sa prijatý a aj vygenerovaný hash rovnajú a súčastne sa jedná o správny \textit{username}, server môže prehlásiť že prihlásenie klienta prebehlo úspešne.
 
 \section{Návod na použitie}
 	Server sa spúšťa s parametrami ktoré určujú chovanie behu programu. Parametre sú na začiatku spustenia programu spracované a pri ich kontrole sú vyhodnotené. Parametre za ktorými nasleduje hodnota, treba uviesť správnu hodnotu inak bude program ukončený a na stderr sa vypíše chybové hlásenie.\\
@@ -178,7 +178,7 @@ password = bar
 
 	\end{itemize}
 
-	Kombináciou parametrov je možné rôzne ovplyvniť beh programu, ale napriek tomu že niektoré parametre sa na seba viažu tak si uvedieme ich možné kombinácie.\\
+	Kombináciou parametrov je možné rôzne ovplyvniť beh programu, ale napriek tomu, že niektoré parametre sa na seba viažu tak si uvedieme ich možné kombinácie.\\
 
 	\textbf{Možné kombinácie parametrov a ich význam pri spustení:}
 	\begin{itemize}
@@ -203,7 +203,7 @@ password = bar
 
 	\end{itemize}
 
-	Pri úspešnom spustení servera sa môžu napájať klienti na server. Server umožní prihlásenie len jedného a to prvého klienta ktorý sa úspšne prihlásil, všetci ostatní užívatelia ktorý sa prihlásia po ňom, sú odpojený a musia čakať až kým sa už prihlásený používateľ neodhlási. Klienti môžu využiť na pripojenie k serveru službu telnet kde uvedia host a port toho zariadenia, kde je spustení server. Napríklad: \textit{telnet localhost 55000}.
+	Pri úspešnom spustení servera sa môžu napájať klienti na server. Server umožní prihlásenie len jedného, a to prvého klienta, ktorý sa úspšne prihlásil, všetci ostatní užívatelia ktorý sa prihlásia po ňom, sú odpojení a musia čakať až kým sa už prihlásený používateľ neodhlási. Klienti môžu využiť na pripojenie k serveru službu telnet kde uvedia host a port toho zariadenia, kde je spustený server. Napríklad: \textit{telnet localhost 55000}.
 
 \newpage %#########################################################################################
 
