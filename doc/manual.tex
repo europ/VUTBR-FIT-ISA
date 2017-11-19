@@ -78,7 +78,7 @@
 	\subsection{POP3}
 		\label{fig:pop3}
 		\indent Pojem POP3 označuje Post Office Protocol - Version 3\cite{POP3} čo je internetový protokol aplikačnej vrstvy používanie na správu emailov. Tento protocol definuje pomocou množín noriem a pravidiel spôsob komunikácie s pop3 serverom a funkcionalitu tohto servera na ktorom je spustený. Tento protokolom definovaný server slúži k správe e-mailov a ich prenos medzi serverom a klientom.\\[0.4em]
-		Server je riadený jedným rozsiahlejším konečným automatomatom. Protokol špecifikuje jednotlivé stavy konečného automatu a príkazy ktoré určujú prechody medzi nimi, konečný automat môžete vidieť v prílohe na obrázku číslo \ref{IMG-FSM}. Z obrázku je zrejmé že pri pripojení klienta je počiatočný stav \textit{authorization} kde sa čaká na autentifikáciu pomocou príkazov APOP alebo USER a PASS. Následne po autentifikácii sa uzamkne priečinok maildir a ostatný klienti musia počkať až kým sa pripojený klient neodpojí. Po autentifikácii sa server nachádza v stave \textit{transaction}. V tomto stave môže spravovať správy uložené na serveri pomocou príkazov RSET, STAT, LIST, UIDL, RETR, DELE. V tomto stave sú ešte ďalšie dva príkazy a to NOOP, ktorý nevykoná nič, a QUIT, ktorý ukončí spojenie s klientom a presunie server do stavu \textit{update}. Server v stave \textit{transaction} nevykoná žiadnu zmenu nad súbormi, ale po presune do stavu \textit{update} vykoná všetky klientom zadané zmeny nad maildirom, napríklad vymaže súbor z disku. Na konci stavu \textit{update} sa odomkne maildir ktorý už obsahuje zmeny vykonané odhláseným klientom a čaká sa na ďalšieho klienta ktorý sa bude chcieť pripojiť.\\[0.4em]
+		Server je riadený jedným rozsiahlejším konečným automatom. Protokol špecifikuje jednotlivé stavy konečného automatu a príkazy, ktoré určujú prechody medzi nimi, konečný automat môžete vidieť v prílohe na obrázku číslo \ref{IMG-FSM}. Z obrázku je zrejmé že pri pripojení klienta je počiatočný stav \textit{authorization} kde sa čaká na autentifikáciu pomocou príkazov APOP alebo USER a PASS. Následne po autentifikácii sa uzamkne priečinok maildir a ostatný klienti musia počkať až kým sa pripojený klient neodpojí. Po autentifikácii sa server nachádza v stave \textit{transaction}. V tomto stave môže spravovať správy uložené na serveri pomocou príkazov RSET, STAT, LIST, UIDL, RETR, DELE. V tomto stave sú ešte ďalšie dva príkazy a to NOOP, ktorý nevykoná nič, a QUIT, ktorý ukončí spojenie s klientom a presunie server do stavu \textit{update}. Server v stave \textit{transaction} nevykoná žiadnu zmenu nad súbormi, ale po presune do stavu \textit{update} vykoná všetky klientom zadané zmeny nad maildirom, napríklad vymaže súbor z disku. Na konci stavu \textit{update} sa odomkne maildir ktorý už obsahuje zmeny vykonané odhláseným klientom a čaká sa na ďalšieho klienta ktorý sa bude chcieť pripojiť.\\[0.4em]
 		Server vždy reaguje na príkazy prijaté od klienta dvojakým spôsobom, a to buď odošle pozitívnu odpoveď vo forme \uv{+OK ...} alebo negatívnu odpoveď \uv{-ERR ...}. Negatívna odpoveď obsahuje popis vzniknutej chyby a popis pozitívnej odpovede je definovaný v protokole POP3\cite{POP3}.
 
 
@@ -137,7 +137,16 @@
 		\indent Druhý súbor nazývaný \uv{data} je vytvorený kvôli obmedzenému počtu prístupu k správe. Pri presune súborov z \textit{new} do \textit{cur} sa vytvorí pre každý súbor \uv{unique-id} popísaný v kapitole \ref{fig:uid} v module \textit{constatns}. Taktiež sa tu získa veľkosť správy a tá sa prepočíta vzhľadom ku ukončeniu riadkov. Tieto informácie sa následne uložia do logovacie súbora \uv{data} a to vo formáte \textit{[filename][/][unique-id][/][filesize]}.
 
 	\subsection{MD5 hash}
-		\indent TODO.
+		\indent POP3 server na to aby mohol využívať autentifikáciu klienta pomocou zdielaného tajného kľúča bolo nutné naimplementovať MD5 hashovaciu funkciu.\\[0.4em]
+		\indent Pri pripojení klienta server automaticky odošle reťazec nazývaný ako \textit{greeting banner}, ktorý je vygenerovaný pre každého klienta osobitne. Tento \textit{greeting banner} je reťazec vo forme:
+		\begin{center}
+		\textit{[<][PID][.][TIME][@][HOSTNAME][>]}\\[0.4em]
+		\end{center}
+		\textit{Greeting banner} sa uloží dočastne na serveri a odošle sa klientovi pri pripojení. Klient musí využiť tento \textit{greeting banner} v prípade prihlásenia za pomoci príkazu APOP, a to pridaním hesla priamo za tento \textit{greeting banner} a zahashovaním tohto reťazca. Hash tohto reťazca (\textit{greeting banner} + heslo) sa nazýva \textit{digest} ktorý má formu:
+		\begin{center}
+		\textit{[<][PID][.][TIME][@][HOSTNAME][>][PASSWORD]}
+		\end{center}
+		Klient môže odoslať príkaz APOP spolu s menom a \textit{digest}. Server prijatú správu overí zda ním vygenerovaný hash je rovnaký ako prijatý. Server pozná heslo ktoré očakáva a aj \textit{greeting banner} takže si môže vygenerovať hash na porovnanie prijatého hashu. Ak sa prijatý a aj vygenerovaný hash rovnajú a súčastne sa jedná o správny \textit{username}, server môže prehlásiť že prihlásenie klienta prebehlo úspešne.
 
 \section{Návod na použitie}
 	Server sa spúšťa s parametrami ktoré určujú chovanie behu programu. Parametre sú na začiatku spustenia programu spracované a pri ich kontrole sú vyhodnotené. Parametre za ktorými nasleduje hodnota, treba uviesť správnu hodnotu inak bude program ukončený a na stderr sa vypíše chybové hlásenie.\\
@@ -180,16 +189,16 @@ password = bar
 		\item Iba Reset:\\[0.1em]
 		\textit{./popser -r}
 
-		\item Štandardné spustenie (autorizovanie používateľa prostredníctvom APOP):\\[0.1em]
+		\item Štandardné spustenie (autentifikácia používateľa prostredníctvom APOP):\\[0.1em]
 		\textit{./popser -a /foo/bar/authfile -d /foo/bar/maildir -p 55000}
 
-		\item Reset a štandardné spustenie (autorizovanie používateľa prostredníctvom APOP):\\[0.1em]
+		\item Reset a štandardné spustenie (autentifikácia používateľa prostredníctvom APOP):\\[0.1em]
 		\textit{./popser -a /foo/bar/authfile -d /foo/bar/maildir -p 55000 -r}
 
-		\item Štandardné spustenie (autorizovanie používateľa prostredníctvom USER a PASS):\\[0.1em]
+		\item Štandardné spustenie (autentifikácia používateľa prostredníctvom USER a PASS):\\[0.1em]
 		\textit{./popser -a /foo/bar/authfile -d /foo/bar/maildir -p 55000 -c}
 
-		\item Reset a štandardné spustenie (autorizovanie používateľa prostredníctvom USER a PASS):\\[0.1em]
+		\item Reset a štandardné spustenie (autentifikácia používateľa prostredníctvom USER a PASS):\\[0.1em]
 		\textit{./popser -a /foo/bar/authfile -d /foo/bar/maildir -p 55000 -c -r }
 
 	\end{itemize}
