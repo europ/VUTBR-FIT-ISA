@@ -46,6 +46,10 @@ void load_cmd_and_args(Command* CMD, std::string& ARGS, std::string& str) {
     else { // 1 space in string => 1 command & 1 argument
         cmd = str.substr(0, pos); // commnad
         ARGS = str.substr(pos+1, str.length()); // argument
+        if (ARGS.empty()) { // BUGFIX, [CMD + ' '] is now error
+            *CMD=COMMAND_ERROR;
+            return;
+        }
     }
     *CMD = get_command(cmd); // enum of the command
     return;
