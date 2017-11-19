@@ -99,10 +99,6 @@ std::string id_generator(std::string filename) {
         filename_number += int(c);
     }
 
-    // https://wis.fit.vutbr.cz/FIT/st/phorum-msg-show.php?id=49087
-    // Martin Holkovič answered "1. yes" it means that every file will have its UNIQUE name
-    srand(filename_number);
-
     std::string str = "";
     char alphanum[] = ID_CHARS;
 

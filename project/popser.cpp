@@ -125,6 +125,7 @@ void server_kernel(Args* args) {
 // The Main
 int main(int argc, char* argv[]) {
 
+    srand(time(NULL));
     std::signal(SIGINT, signal_handler); // signal handler
 
     Args args; // shared class
