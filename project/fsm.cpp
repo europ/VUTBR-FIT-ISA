@@ -21,15 +21,28 @@
 #include "datatypes.hpp"
 
 // if send failed close socket, open mutex if locked, kill thread => do a "return" in thread_main (macro used only in thread_main)
-#define TSEND(s,m)                       \
-    if (!thread_send(s,m)) {             \
-        close(s);                        \
-        if (flag_mutex) {                \
-            mutex_maildir.unlock();      \
-            flag_mutex = false;          \
-        }                                \
-        return;                          \
+#define TSEND(s,m)                  \
+    if (!thread_send(s,m)) {        \
+        close(s);                   \
+        if (flag_mutex) {           \
+            mutex_maildir.unlock(); \
+            flag_mutex = false;     \
+        }                           \
+        return;                     \
     }
+
+// solution for code duplication
+#define MOVE_MAILDIR(M_args,M_retval,M_socket,M_msg,M_flag_exit)    \
+    M_retval = move_new_to_curr(M_args);                            \
+    if (M_retval != 0) {                                            \
+        M_msg = "-ERR Wrong maildir (wrong folder structure)!\r\n"; \
+        TSEND(M_socket, M_msg);                                     \
+        mutex_maildir.unlock();                                     \
+        flag_mutex = false;                                         \
+        close(M_socket);                                            \
+        return;                                                     \
+    }                                                                          
+
 
 // GLOBAL VARIABLES defined in popser.cpp
 extern bool flag_exit;
@@ -300,10 +313,9 @@ void thread_main(int socket, Args* args) {
                                                 return; // kill thread
                                             }
 
-                                            // TODO check maildir
+                                            MOVE_MAILDIR(args,retval,socket,msg,flag_exit);
                                             flag_mutex = true;
                                             STATE = TRANSACTION;
-                                            move_new_to_curr(args);
                                             WORKING_VECTOR = load_file_lines_to_vector(DATA_FILE_NAME);
                                         }
                                         else { // Wrong password
@@ -361,12 +373,10 @@ void thread_main(int socket, Args* args) {
                                     return; // kill thread
                                 }
 
-                                // TODO check maildir
+                                MOVE_MAILDIR(args,retval,socket,msg,flag_exit);
                                 flag_mutex = true;
                                 STATE = TRANSACTION;
-                                move_new_to_curr(args);
                                 WORKING_VECTOR = load_file_lines_to_vector(DATA_FILE_NAME);
-
                             }
                         }
                         else { // APOP command is NOT supported

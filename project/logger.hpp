@@ -48,6 +48,6 @@ void remove_file(std::string& filename, Args* args);
 std::vector<std::string> get_file_paths_in_directory(std::string dirpath);
 
 // Function move content of maildir/new to maildir/curr
-void move_new_to_curr(Args* args);
+int move_new_to_curr(Args* args);
 
 #endif

@@ -3,7 +3,7 @@
 #include <unistd.h> // getopt()
 #include <string.h> // memset(), strcmp()
 
-#include "checks.hpp"    // is_number(), file_exists(), dir_exists(), check_maildir()
+#include "checks.hpp"    // is_number(), file_exists(), dir_exists()
 #include "logger.hpp"    // reset()
 #include "constants.hpp" // PORT_MAX
 
@@ -146,13 +146,22 @@ void argpar(int* argc, char* argv[], Args* args) {
 
         // check maildir directory existence
         if (args->d) {
-            if (!dir_exists(args->path_d)) {
-                fprintf(stderr, "Wrong maildir direcotry!\n");
-                exit(1);
+
+            /* 
+             * If we have "-x a -y b" and we do not give a value "a",
+             * getopt will load the following arguments next to "-x",
+             * which is "-y" what is a parameter not a value
+             */
+            
+            // this is a hack due to lazy getopt ...
+            if ((args->path_d).compare("-c") == 0) {
+                args->c = true;
             }
-            else {
-                check_maildir(args);
+            if ((args->path_d).compare("-r") == 0) {
+                args->r = true;
             }
+
+            // the -a and -p will fail on checks before
         }
 
         // provide reset

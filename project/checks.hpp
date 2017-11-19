@@ -15,6 +15,6 @@ bool file_exists(const std::string path);
 bool dir_exists(const std::string& path);
 
 // Function checks the structure of maildir
-void check_maildir(Args* args);
+int check_maildir(Args* args);
 
 #endif

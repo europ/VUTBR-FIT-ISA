@@ -42,7 +42,6 @@ class Args {
         std::string password = "";
         std::string path_maildir_new = "";
         std::string path_maildir_cur = "";
-        std::string path_maildir_tmp = "";
 };
 
 // Converter STRING to ENUM

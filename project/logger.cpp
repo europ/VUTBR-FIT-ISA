@@ -331,7 +331,15 @@ std::vector<std::string> get_file_paths_in_directory(std::string dirpath) {
 }
 
 // Function move content of maildir/new to maildir/curr
-void move_new_to_curr(Args* args) {
+int move_new_to_curr(Args* args) {
+
+    if (!dir_exists(args->path_d)) {
+        return 1;
+    }
+    else {
+        if (check_maildir(args) != 0) return 2;
+    }
+
 
     //##########################################
     // ABSOLUTE PATHS OF ALL FILES in maildir/NEW
@@ -339,7 +347,7 @@ void move_new_to_curr(Args* args) {
     std::vector<std::string> files;
     files = get_file_paths_in_directory(args->path_maildir_new); // returns ABSOLUTE paths of every files in directory
 
-    if (files.empty()) return; // 0 files in maildir/NEW
+    if (files.empty()) return 0; // 0 files in maildir/NEW
 
 
 
@@ -382,5 +390,5 @@ void move_new_to_curr(Args* args) {
 
     logfile.close();
 
-    return;
+    return 0;
 }
