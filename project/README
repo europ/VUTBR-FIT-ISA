@@ -9,7 +9,7 @@ EXTENSIONS
     none
 
 RESTRICTIONS
-    none
+    command TOP is not supported
 
 FILES
     .

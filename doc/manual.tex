@@ -77,7 +77,7 @@
 
 	\subsection{POP3}
 		\label{fig:pop3}
-		\indent Pojem POP3 označuje Post Office Protocol - Version 3\cite{POP3} čo je internetový protokol aplikačnej vrstvy používanie na správu emailov. Tento protocol definuje pomocou množín noriem a pravidiel spôsob komunikácie s pop3 serverom a funkcionalitu tohto servera na ktorom je spustený. Tento protokolom definovaný server slúži k správe e-mailov a ich prenos medzi serverom a klientom.\\[0.4em]
+		\indent Pojem POP3 označuje Post Office Protocol - Version 3\cite{POP3} čo je internetový protokol aplikačnej vrstvy používaný na správu emailov. Tento protokol definuje pomocou množín noriem a pravidiel spôsob komunikácie s pop3 serverom a funkcionalitu tohto servera na ktorom je spustený. Tento protokolom definovaný server slúži k správe e-mailov a ich prenos medzi serverom a klientom.\\[0.4em]
 		Server je riadený jedným rozsiahlejším konečným automatom. Protokol špecifikuje jednotlivé stavy konečného automatu a príkazy, ktoré určujú prechody medzi nimi, konečný automat môžete vidieť v prílohe na obrázku číslo \ref{IMG-FSM}. Z obrázku je zrejmé že pri pripojení klienta je počiatočný stav \textit{authorization} kde sa čaká na autentifikáciu pomocou príkazov APOP alebo USER a PASS. Následne po autentifikácii sa uzamkne priečinok maildir a ostatný klienti musia počkať až kým sa pripojený klient neodpojí. Po autentifikácii sa server nachádza v stave \textit{transaction}. V tomto stave môže spravovať správy uložené na serveri pomocou príkazov RSET, STAT, LIST, UIDL, RETR, DELE. V tomto stave sú ešte ďalšie dva príkazy a to NOOP, ktorý nevykoná nič, a QUIT, ktorý ukončí spojenie s klientom a presunie server do stavu \textit{update}. Server v stave \textit{transaction} nevykoná žiadnu zmenu nad súbormi, ale po presune do stavu \textit{update} vykoná všetky klientom zadané zmeny nad maildirom, napríklad vymaže súbor z disku. Na konci stavu \textit{update} sa odomkne maildir ktorý už obsahuje zmeny vykonané odhláseným klientom a čaká sa na ďalšieho klienta ktorý sa bude chcieť pripojiť.\\[0.4em]
 		Server vždy reaguje na príkazy prijaté od klienta dvojakým spôsobom, a to buď odošle pozitívnu odpoveď vo forme \uv{+OK ...} alebo negatívnu odpoveď \uv{-ERR ...}. Negatívna odpoveď obsahuje popis vzniknutej chyby a popis pozitívnej odpovede je definovaný v protokole POP3\cite{POP3}.
 
@@ -203,7 +203,13 @@ password = bar
 
 	\end{itemize}
 
-	Pri úspešnom spustení servera sa môžu napájať klienti na server. Server umožní prihlásenie len jedného, a to prvého klienta, ktorý sa úspšne prihlásil, všetci ostatní užívatelia ktorý sa prihlásia po ňom, sú odpojení a musia čakať až kým sa už prihlásený používateľ neodhlási. Klienti môžu využiť na pripojenie k serveru službu telnet kde uvedia host a port toho zariadenia, kde je spustený server. Napríklad: \textit{telnet localhost 55000}.
+	\indent Pri úspešnom spustení servera sa môžu napájať klienti na server. Server umožní prihlásenie len jedného, a to prvého klienta, ktorý sa úspšne prihlásil, všetci ostatní užívatelia ktorý sa prihlásia po ňom, sú odpojení a musia čakať až kým sa už prihlásený používateľ neodhlási. Klienti môžu využiť na pripojenie k serveru službu telnet kde uvedia host a port toho zariadenia, kde je spustený server. Napríklad: \textit{telnet localhost 55000}.
+
+\section{Záver}
+
+\indent Cieľom tohto projektu bolo vytvorenie POP3 servera podľa RFC 1939\cite{POP3} ktorý má slúžiť na jednoduchú komunikáciu s klientami. Server využíva paralelný neblokujúci soket ku komunikácii a vlákna na obsluhu klienta. Implementácia je rozdelená na moduly ktoré zlepšujú prehľadnosť a čitateľnosť zdrojového kódu.\\[0.4em]
+\indent Výsledkom je plne funkčný program ktorý je implementáciou protokolu POP3 podľa RFC 1939\cite{POP3}. Server nepodporuje príkaz TOP, ktorý je v tomto projekte označovaný za rozšírenie projektu.
+
 
 \newpage %#########################################################################################
 
