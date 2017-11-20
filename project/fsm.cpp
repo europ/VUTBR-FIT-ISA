@@ -41,7 +41,7 @@
         flag_mutex = false;                                         \
         close(M_socket);                                            \
         return;                                                     \
-    }                                                                          
+    }
 
 #define CHECK_NUM_SIZE(number_in_string,socket,message) \
     if (number_in_string.size() > 9) {                  \
@@ -215,6 +215,8 @@ void thread_main(int socket, Args* args) {
             msg = "Timeout expired! You were AFK for "+std::to_string(time_curr - time_from)+" seconds.\r\n";
             TSEND(socket, msg);
             close(socket);
+            flag_mutex = false;
+            mutex_maildir.unlock();
             return;
         }
         else if (res > 0) { // DATA INCOME
