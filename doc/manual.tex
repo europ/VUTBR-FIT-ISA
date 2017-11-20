@@ -149,6 +149,9 @@
 		Klient môže odoslať príkaz APOP spolu s menom a \textit{digest}. Server prijatú správu overí, že ním vygenerovaný hash je rovnaký ako prijatý. Server pozná heslo ktoré očakáva a aj \textit{greeting banner} takže si môže vygenerovať hash na porovnanie prijatého hashu. Ak sa prijatý a aj vygenerovaný hash rovnajú a súčastne sa jedná o správny \textit{username}, server môže prehlásiť že prihlásenie klienta prebehlo úspešne.
 
 \section{Návod na použitie}
+
+	\subsection{Spustenie POP3 server a nadviazanie spojenia}
+
 	Server sa spúšťa s parametrami ktoré určujú chovanie behu programu. Parametre sú na začiatku spustenia programu spracované a pri ich kontrole sú vyhodnotené. Parametre za ktorými nasleduje hodnota, treba uviesť správnu hodnotu inak bude program ukončený a na stderr sa vypíše chybové hlásenie.\\
 
 	\textbf{Zoznam parametrov a ich význam:}
@@ -204,6 +207,36 @@ password = bar
 	\end{itemize}
 
 	\indent Pri úspešnom spustení servera sa môžu napájať klienti na server. Server umožní prihlásenie len jedného, a to prvého klienta, ktorý sa úspšne prihlásil, všetci ostatní užívatelia ktorý sa prihlásia po ňom, sú odpojení a musia čakať až kým sa už prihlásený používateľ neodhlási. Klienti môžu využiť na pripojenie k serveru službu telnet kde uvedia host a port toho zariadenia, kde je spustený server. Napríklad: \textit{telnet localhost 55000}.
+
+	\subsection{Komunikácia so spusteným POP3 serverom}
+
+	So serverom je možné pracovať pomocou príkazov. Príkazy zadáva klient, server ich spracuje a odošle odpoveď naspäť klientovi. Klient môže získať dva druhy odpovedí a to kladné, t.j. správy začínajúce s \textit{+OK}, a záporné t.j. správy začínajúce s \textit{-ERR}. Každá odpoveď v sebe nesie určitý obsah informácii, ktoré sú sa vzťahujú na príkaz zadaný klientom a na jeho vyhodnotenie serverom.\\[0.4em]
+
+	Klient môže použiť nasledovné príkazy ktoré sú \textbf{case-insensitive} presne v tomto formáte:
+	\begin{itemize}
+		\item \textbf{user} username\\[0.1em]
+			Autentifikácia vyžaduje meno a heslo keď je zadaný parameter \uv{-c}. V tomto prípade keď je zadaný parameter \uv{-c} autentifikácia začína s týmto príkazom.
+		\item \textbf{pass} password\\[0.1em]
+			Príkaz je nutný k dokončeniu autentifikáčného procesu pri zadanom \uv{-c} parametri.
+		\item \textbf{apop} username digest\\[0.1em]
+			Autentifikácia môže byť uskutočnená pomocou tohto jedného príkazu. Server odošle klientovi \textit{greeting banner} ku ktorému je nutné pridať heslo a vytvoriť z tejto sekvencie reťazcov MD5 hash nazývaný \textit{digest}. Následne sa môže klient autentifikovať pomocou tohto príkazu.
+		\item \textbf{quit}\\[0.1em]
+			Ukončí spojenie (odpojí klienta od servera).
+		\item \textbf{noop}\\[0.1em]
+			Príkaz ktorý nerobí nič.
+		\item \textbf{stat}\\[0.1em]
+			Príkaz vráti počet správ a ich veľkosť.
+		\item \textbf{rset}\\[0.1em]
+			Po zadaní tohto príkazu sa vykoná rollback, t.j. všetky správy ktoré boli označené na vymazanie sa resetnú.
+		\item \textbf{list} [index]\\[0.1em]
+			Príkaz samotný vráti zoznam ktorý obsahuje index správy a veľkosť správy. Ak sa príkaz zadá s voliteľným parametrom index ktorý musí byť číslo (reťazec tvorený zo znakov 0-9 o dĺžke 9 znakov) tak sa vráti index správy a jej veľkosť.
+		\item \textbf{uidl} [index]\\[0.1em]
+			Tento príkaz pracuje na rovnakom princípe ako predošlý príkaz. Ak sa zadá bez voliteľného parametru index, tak vráti index správy a uid t.j. \textit{unique-id} správy. Príkaz so zadaným voliteľným parametrom vráti index dotazovanej správy a jej uid.
+		\item \textbf{retr} index\\[0.1em]
+			Príkaz vracia obsah správy zadanej indexom.
+		\item \textbf{dele} index\\[0.1em]
+			Príkaz vymaže správu zadanú indexom.
+	\end{itemize}
 
 \section{Záver}
 
