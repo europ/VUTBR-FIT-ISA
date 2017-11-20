@@ -43,11 +43,11 @@
         return;                                                     \
     }
 
-#define CHECK_NUM_SIZE(number_in_string,socket,message) \
-    if (number_in_string.size() > 9) {                  \
-        message = "-ERR Number is too big!\r\n";        \
-        TSEND(socket, message);                         \
-        break;                                          \
+#define CHECK_NUM_SIZE(number_in_string,socket,message)    \
+    if (number_in_string.size() > 9) {                     \
+        message = "-ERR Number argument is too long!\r\n"; \
+        TSEND(socket, message);                            \
+        break;                                             \
     }
 
 // GLOBAL VARIABLES defined in popser.cpp

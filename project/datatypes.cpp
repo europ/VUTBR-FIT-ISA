@@ -10,7 +10,7 @@ Command get_command(std::string& str) {
     std::string cmd = str;
     std::transform(cmd.begin(), cmd.end(), cmd.begin(), ::tolower); // TO LOWERCASE
 
-    if (cmd.compare("quit") == 0) return QUIT;
+    if      (cmd.compare("quit") == 0) return QUIT;
     else if (cmd.compare("stat") == 0) return STAT;
     else if (cmd.compare("list") == 0) return LIST;
     else if (cmd.compare("retr") == 0) return RETR;
